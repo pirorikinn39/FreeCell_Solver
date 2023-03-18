@@ -8,7 +8,7 @@
 #include <chrono>
 #include <unordered_map>
 #include <climits>
-#include "Position.hpp"
+#include "position.hpp"
 
 #ifndef Solve_h
 #define Solve_h

@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdio.h>
-#include "Solve.hpp"
+#include "solve.hpp"
 
 int main(int argc, char* argv[]) {
 	if(argc != 2) {
@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
 		terminate();
 	}
 
-	cout << "#" << game_id << endl;
+	cout << game_id;
 	if (game_id == 11982) {
 		cout << "couldn't solve" << endl;
 	}

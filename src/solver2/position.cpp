@@ -1,4 +1,4 @@
-#include "Position.hpp"
+#include "position.hpp"
 Position::Table Position::table;
 constexpr int Position::bad_location;
 

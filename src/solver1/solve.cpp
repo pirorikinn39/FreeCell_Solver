@@ -1,4 +1,4 @@
-#include "Solve.hpp"
+#include "solve.hpp"
 
 int Solve::dfstt1(int th, int g_cost, Position::Action* path, Solve::Entry_tt& entry_m_position) noexcept {
     if (m_position.ncard_rest() == 0) {
@@ -60,31 +60,28 @@ int Solve::dfstt1(int th, int g_cost, Position::Action* path, Solve::Entry_tt& e
 }
 
 Solve::Solve(int game_id) noexcept : m_game_id(game_id), m_position(m_game_id) {
-    Position::Action path[UCHAR_MAX];
-    int nauto = m_position.move_auto(path);
-    int g_cost = nauto;
-    int th = m_position.calc_h_cost();
-    auto pair = m_tt.emplace(piecewise_construct, forward_as_tuple(m_position.get_zobrist_key()), forward_as_tuple(th, m_position));
-    assert(pair.second);
-    Solve::Entry_tt& entry = (pair.first)->second;
-    m_is_solved = false;
-    while (true) {
-        th = dfstt1(th, g_cost, path, entry);
-        if ((th == UCHAR_MAX) || (m_is_solved))
-            break;
-    }
-
-    if (! m_is_solved) {
-        cout << "couldn't solve" << endl;
-    }
-    else {
-        int min_f_cost = g_cost + th;
-        cout << "shortest path length : " << endl;
-        cout << min_f_cost << endl;
-
-        cout << "shortest path : " << endl;
-        for (int i=0; i<min_f_cost; ++i)
-            cout << m_answer[i].gen_SN() << " ";
-        cout << endl;
-    }
+  Position::Action path[UCHAR_MAX];
+  int nauto = m_position.move_auto(path);
+  int g_cost = nauto;
+  int th = m_position.calc_h_cost();
+  auto pair = m_tt.emplace(piecewise_construct, forward_as_tuple(m_position.get_zobrist_key()), forward_as_tuple(th, m_position));
+  assert(pair.second);
+  Solve::Entry_tt& entry = (pair.first)->second;
+  m_is_solved = false;
+  while (true) {
+    th = dfstt1(th, g_cost, path, entry);
+    if ((th == UCHAR_MAX) || (m_is_solved))
+      break;
+  }
+  
+  if (! m_is_solved) {
+    cout << "couldn't solve" << endl;
+  }
+  else {
+    int min_f_cost = g_cost + th;
+    cout << ", " << min_f_cost << ",";
+    for (int i=0; i<min_f_cost; ++i)
+      cout << " " << m_answer[i].gen_SN();
+    cout << ", " << m_tt.size();
+  }
 }

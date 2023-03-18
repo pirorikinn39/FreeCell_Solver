@@ -1,6 +1,8 @@
 #!/bin/bash -e
-CFLAGS+=" -Wall -O2"
-[ ! "$1" = debug ] && CFLAGS+=" -DNDEBUG"
+if [ "$1" = debug ]
+then CFLAGS+=" -Wall -O2 -g"
+else CFLAGS+=" -Wall -O2 -DNDEBUG"
+fi
 set -x
-g++ -std=c++11 src/common/card.cpp src/solver1/Bits.cpp src/solver1/Position.cpp src/solver1/Solve.cpp src/solver1/Main.cpp $CFLAGS -o bin/solver1
-g++ -std=c++11 src/common/card.cpp src/solver2/Bits.cpp src/solver2/Position.cpp src/solver2/Solve.cpp src/solver2/Main.cpp $CFLAGS -o bin/solver2
+g++ -std=c++11 src/common/card.cpp src/solver1/bits.cpp src/solver1/position.cpp src/solver1/solve.cpp src/solver1/main.cpp $CFLAGS -o bin/solver1
+g++ -std=c++11 src/common/card.cpp src/solver2/bits.cpp src/solver2/position.cpp src/solver2/solve.cpp src/solver2/main.cpp $CFLAGS -o bin/solver2
