@@ -4,9 +4,9 @@ This contains implementation developed and used in master's thesis [1].
 
 <dl>
 <dt> solver1 </dt>
-<dd> written based on the proposed method in Ref. [1] </dd>
-<dt> solver2 </dt>
 <dd> written based on the method in Ref. [2] </dd>
+<dt> solver2 </dt>
+<dd> written based on the proposed method in Ref. [1] </dd>
 </dl>
 
 Hiroki Sukegawa and Kunihito Hoki
