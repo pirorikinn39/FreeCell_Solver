@@ -5,7 +5,7 @@
 #include <cmath>
 #include <utility>
 #include <string>
-#include "../Common/Card.hpp"
+#include "../common/card.hpp"
 
 #ifndef Bits_h
 #define Bits_h
@@ -16,13 +16,11 @@ private:
         uint64_t bits[CARD_SIZE];
         uint64_t bits_next[CARD_SIZE];
         uint64_t bits_placeable[CARD_SIZE];
-        uint64_t bits_same_suit_small_rank[CARD_SIZE];
-        uint64_t bits_different_suit[CARD_SIZE];
+        uint64_t bits_deadlock[CARD_SIZE];
         Table() noexcept {
             for (int id=0; id<CARD_SIZE; ++id) {
                 bits[id] = 1ULL << (63 - id);
-                bits_next[id] = bits_placeable[id] = bits_same_suit_small_rank[id] = 0ULL;
-                bits_different_suit[id] = 0xfffffffffffff000ULL;
+                bits_next[id] = bits_placeable[id] = 0ULL;
 
                 Card next = Card::next(id);
                 if (next.is_card())
@@ -34,31 +32,19 @@ private:
                     int id1 = Card(suits.first,  prev.rank()).get_id();
                     int id2 = Card(suits.second, prev.rank()).get_id();
                     bits_placeable[id] |= 1ULL << (63 - id1);
-                    bits_placeable[id] |= 1ULL << (63 - id2); 
+                    bits_placeable[id] |= 1ULL << (63 - id2);
                 }
 
-                int suit = Card(id).suit();
-                if (prev.is_card()) {
-                    for (int rank=0; rank<=prev.rank(); ++rank) {
-                        Card card = Card(suit, rank);
-                        bits_same_suit_small_rank[id] |= 1ULL << (63 - card.get_id());
-                    }
-                }
-
-                for (int rank=0; rank<RANK_SIZE; ++rank) {
-                    Card card = Card(suit, rank);
-                    bits_different_suit[id] ^= 1ULL << (63 - card.get_id());
-                }
+                for (Card card=prev; card.is_card(); card=card.prev())
+                    bits_deadlock[id] |= 1ULL << (63 - card.get_id());
             }
         }
     };
-    static Table table;
+    static Bits::Table table;
     uint64_t m_bits;
 
     constexpr Bits(uint64_t bits) noexcept : m_bits(bits) {};
-    constexpr bool correct() const noexcept { 
-        return ! (m_bits & 0xfffULL); 
-    };
+    constexpr bool correct() const noexcept { return ! (m_bits & 0xfffULL); };
 #if defined(__GNUC__)
     int count_popu() const noexcept {
         assert(correct());
@@ -68,9 +54,8 @@ private:
         assert(correct());
         if (! m_bits) 
             return -1;
-        return __builtin_clzll(m_bits);
+        return __builtin_clzll(m_bits); 
     };
-
 #else
     int count_popu() const noexcept {
         assert(! corrupt());
@@ -121,38 +106,31 @@ public:
     Bits(const Card& card) noexcept : m_bits(Bits::table.bits[card.get_id()]) {};
     uint64_t get_bits() const noexcept {
         assert(correct());
-        return m_bits; 
+        return m_bits;
     };
     static constexpr Bits full() noexcept { 
         return Bits(static_cast<uint64_t>(0xfffffffffffff000ULL)); 
     };
     static Bits next(int id) noexcept {
         assert((0 <= id) && (id <= 51));
-        return Bits(Bits::table.bits_next[id]);
+        return Bits(Bits::table.bits_next[id]); 
     };
     static Bits next(const Card& card) noexcept {
-        return next(card.get_id());
+        return next(card.get_id()); 
     };
     static Bits placeable(int id) noexcept {
         assert((0 <= id) && (id <= 51));
-        return Bits(Bits::table.bits_placeable[id]);
+        return Bits(Bits::table.bits_placeable[id]);   
     };
     static Bits placeable(const Card& card) noexcept {
         return placeable(card.get_id()); 
     };
-    static Bits same_suit_small_rank(int id) noexcept {
-        assert((0 <= id) && (id <= 51));
-        return Bits(Bits::table.bits_same_suit_small_rank[id]); 
+    static Bits deadlock(int id) noexcept {
+        assert((id >= 0) && (id <= 51));
+        return Bits(Bits::table.bits_deadlock[id]);
     };
-    static Bits same_suit_small_rank(const Card& card) noexcept {
-        return same_suit_small_rank(card.get_id()); 
-    };
-    static Bits different_suit(int id) noexcept {
-        assert((0 <= id) && (id <= 51));
-        return Bits(Bits::table.bits_different_suit[id]);
-    };
-    static Bits different_suit(const Card& card) noexcept {
-        return different_suit(card.get_id());
+    static Bits deadlock(const Card& card) noexcept {
+        return deadlock(card.get_id());
     };
     void alter(int id) noexcept {
         assert(correct());
@@ -160,7 +138,7 @@ public:
         m_bits ^= Bits::table.bits[id]; 
     };
     void alter(const Card& card) noexcept {
-        alter(card.get_id()); 
+        alter(card.get_id());
     };
     void set_bit(int id) noexcept {
         assert(! (m_bits & (1ULL << (63 - id))));
@@ -173,9 +151,7 @@ public:
         assert(m_bits & (1ULL << (63 - id)));
         alter(id); 
     };
-    void clear_bit(const Card& card) noexcept {
-        clear_bit(card.get_id());
-    };
+    void clear_bit(const Card& card) noexcept { clear_bit(card.get_id()); };
     void clear() noexcept {
         assert(correct());
         m_bits = 0ULL; 
@@ -185,26 +161,24 @@ public:
             return Card(-1);
         int id = count_lz();
         clear_bit(id);
-        return Card(id);
+        return Card(id); 
     };
-    int popu() const noexcept {
-        return count_popu();
+    int popu() const noexcept { 
+        return count_popu(); 
     };
     bool is_set_bit(int id) const noexcept {
         assert(correct());
         assert((0 <= id) && (id <= 51));
         return m_bits & Bits::table.bits[id]; 
     };
-    bool is_set_bit(const Card& card) const noexcept {
-        return is_set_bit(card.get_id());
-    };
+    bool is_set_bit(const Card& card) const noexcept { return is_set_bit(card.get_id()); };
     operator bool() const noexcept {
         assert(correct());
         return m_bits != 0ULL; 
     };
     bool operator!() const noexcept {
         assert(correct());
-        return m_bits == 0ULL; 
+        return m_bits == 0ULL;
     };
     Bits operator|=(const Bits& bits) noexcept {
         assert(correct() && bits.correct());

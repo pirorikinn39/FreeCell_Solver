@@ -1,4 +1,4 @@
-#include "Card.hpp"
+#include "card.hpp"
 
 constexpr int Card::spade;
 constexpr int Card::club;
