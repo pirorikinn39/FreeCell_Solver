@@ -99,7 +99,7 @@ private:
         bool correct() const;
 
     public:
-        Entry_tt(int h_cost, const Position& position, const Card* candidate_homecell_next) noexcept {
+        Entry_tt(int h_cost, const Position& position, const Card* candidate_homecell_next) noexcept : m_is_decided(false) {
             assert((h_cost >= 0) && (h_cost < 256));
             copy_n(candidate_homecell_next, SUIT_SIZE, m_candidate_homecell_next);
 #ifdef TEST_ZKEY
