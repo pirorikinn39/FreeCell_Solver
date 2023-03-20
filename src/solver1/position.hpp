@@ -8,7 +8,7 @@
 #include <string>
 #include <string.h>
 #include <algorithm>
-#include "bits.hpp"
+#include "../common/bits.hpp"
 
 #ifndef Position_h
 #define Position_h

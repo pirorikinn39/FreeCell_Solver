@@ -11,7 +11,7 @@
 #include <bitset>
 #include <algorithm>
 #include <chrono>
-#include "bits.hpp"
+#include "../common/bits.hpp"
 
 #ifndef Position_h
 #define Position_h
