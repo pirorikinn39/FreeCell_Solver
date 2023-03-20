@@ -1,4 +1,4 @@
-#include "Position.hpp"
+#include "position.hpp"
 Position::Table Position::table;
 constexpr int Position::bad_location;
 
@@ -298,7 +298,7 @@ bool Position::correct() const {
         for (int id=0; id<CARD_SIZE; ++id) {
             if (m_array_location[id] >= 8)
                 continue;
-            Bits bits_deadlock = Bits::deadlock(id);
+            Bits bits_deadlock = Bits::same_suit_small_rank(id);
 #ifdef TEST_ZKEY
             for (Card below=m_union_array_card_below.get_array_card_below(id); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
                 if (bits_deadlock.is_set_bit(below)) {
@@ -328,7 +328,7 @@ bool Position::correct() const {
 #ifdef TEST_ZKEY
             for (Card below=Card(id); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
                 bool is_deadlocked = false;
-                Bits bits_deadlock = Bits::deadlock(below);
+                Bits bits_deadlock = Bits::same_suit_small_rank(below);
                 for (Card below_below=m_union_array_card_below.get_array_card_below(below); below_below.is_card(); below_below=m_union_array_card_below.get_array_card_below(below_below)) {
                     if (bits_deadlock.is_set_bit(below_below)) {
                         is_deadlocked = true;
@@ -341,7 +341,7 @@ bool Position::correct() const {
 #else
             for (Card below=Card(id); below.is_card(); below=m_array_card_below[below.get_id()]) {
                 bool is_deadlocked = false;
-                Bits bits_deadlock = Bits::deadlock(below);
+                Bits bits_deadlock = Bits::same_suit_small_rank(below);
                 for (Card below_below=m_array_card_below[below.get_id()]; below_below.is_card(); below_below=m_array_card_below[below_below.get_id()]) {
                     if (bits_deadlock.is_set_bit(below_below)) {
                         is_deadlocked = true;
@@ -575,7 +575,7 @@ bool Position::correct_for_h() const {
         for (int id=0; id<CARD_SIZE; ++id) {
             if (m_array_location[id] >= 8)
                 continue;
-            Bits bits_deadlock = Bits::deadlock(id);
+            Bits bits_deadlock = Bits::same_suit_small_rank(id);
 #ifdef TEST_ZKEY
             for (Card below=m_union_array_card_below.get_array_card_below(id); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
                 if (bits_deadlock.is_set_bit(below)) {
@@ -605,7 +605,7 @@ bool Position::correct_for_h() const {
 #ifdef TEST_ZKEY
             for (Card below=Card(id); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
                 bool is_deadlocked = false;
-                Bits bits_deadlock = Bits::deadlock(below);
+                Bits bits_deadlock = Bits::same_suit_small_rank(below);
                 for (Card below_below=m_union_array_card_below.get_array_card_below(below); below_below.is_card(); below_below=m_union_array_card_below.get_array_card_below(below_below)) {
                     if (bits_deadlock.is_set_bit(below_below)) {
                         is_deadlocked = true;
@@ -618,7 +618,7 @@ bool Position::correct_for_h() const {
 #else
             for (Card below=Card(id); below.is_card(); below=m_array_card_below[below.get_id()]) {
                 bool is_deadlocked = false;
-                Bits bits_deadlock = Bits::deadlock(below);
+                Bits bits_deadlock = Bits::same_suit_small_rank(below);
                 for (Card below_below=m_array_card_below[below.get_id()]; below_below.is_card(); below_below=m_array_card_below[below_below.get_id()]) {
                     if (bits_deadlock.is_set_bit(below_below)) {
                         is_deadlocked = true;
@@ -746,7 +746,7 @@ void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Ca
         if (m_array_location[id] >= 8)
             continue;
         m_array_ncard_not_deadlocked_below_and[id] = 1U;
-        Bits bits_deadlock = Bits::deadlock(id);
+        Bits bits_deadlock = Bits::same_suit_small_rank(id);
 #ifdef TEST_ZKEY
         for (Card below=m_union_array_card_below.get_array_card_below(id); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
             if (bits_deadlock.is_set_bit(below)) {
@@ -1232,14 +1232,14 @@ void Position::make(const Position::Action& action) noexcept {
         }
 
         if (m_bits_deadlocked.is_set_bit(card)) {
-            if (! (m_array_bits_column_card[column_to] & Bits::deadlock(card))) {
+            if (! (m_array_bits_column_card[column_to] & Bits::same_suit_small_rank(card))) {
                 m_bits_deadlocked.clear_bit(card);
                 m_ncard_deadlocked -= 1;
             }
         }
         else {
             assert(! m_bits_deadlocked.is_set_bit(card));
-            if (m_array_bits_column_card[column_to] & Bits::deadlock(card)) {
+            if (m_array_bits_column_card[column_to] & Bits::same_suit_small_rank(card)) {
                 m_bits_deadlocked.set_bit(card);
                 m_ncard_deadlocked += 1;
             }
@@ -1274,7 +1274,7 @@ void Position::make(const Position::Action& action) noexcept {
             update_array_card_below(card, Card::field()); 
         }
         
-        if (m_array_bits_column_card[column] & Bits::deadlock(card)) {
+        if (m_array_bits_column_card[column] & Bits::same_suit_small_rank(card)) {
             m_bits_deadlocked.set_bit(card);
             m_ncard_deadlocked += 1;
         }
@@ -1478,14 +1478,14 @@ void Position::unmake(const Position::Action& action) noexcept {
         }
 
         if (m_bits_deadlocked.is_set_bit(card)) {
-            if (! (m_array_bits_column_card[column_from] & Bits::deadlock(card))) {
+            if (! (m_array_bits_column_card[column_from] & Bits::same_suit_small_rank(card))) {
                 m_bits_deadlocked.clear_bit(card);
                 m_ncard_deadlocked -= 1;
             }
         }
         else {
             assert(! m_bits_deadlocked.is_set_bit(card));
-            if (m_array_bits_column_card[column_from] & Bits::deadlock(card)) {
+            if (m_array_bits_column_card[column_from] & Bits::same_suit_small_rank(card)) {
                 m_bits_deadlocked.set_bit(card);
                 m_ncard_deadlocked += 1;
             }
@@ -1555,7 +1555,7 @@ void Position::unmake(const Position::Action& action) noexcept {
             update_array_card_below(card, Card::field()); 
         }
 
-        if (m_array_bits_column_card[column] & Bits::deadlock(card)) {
+        if (m_array_bits_column_card[column] & Bits::same_suit_small_rank(card)) {
             m_bits_deadlocked.set_bit(card);
             m_ncard_deadlocked += 1;
         }
@@ -1635,7 +1635,7 @@ void Position::unmake(const Position::Action_for_h& action) noexcept {
             update_array_card_below(card, Card::field()); 
         }
 
-        if (m_array_bits_column_card[from] & Bits::deadlock(card)) {
+        if (m_array_bits_column_card[from] & Bits::same_suit_small_rank(card)) {
             m_bits_deadlocked.set_bit(card);
             m_ncard_deadlocked += 1;
         }

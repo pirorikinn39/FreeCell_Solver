@@ -7,39 +7,22 @@
 #include <utility>
 #include <string>
 #include <string.h>
-#include <unordered_map>
-#include <bitset>
 #include <algorithm>
-#include <chrono>
-#include "Bits.hpp"
+#include "../common/bits.hpp"
 
 #ifndef Position_h
 #define Position_h
 
-#define MAX_ACTION_SIZE 35
-#define MAX_H_COST (CARD_SIZE * 2)
+#define MAX_ACTION_SIZE 34
+#define MAX_SINGLE_SUIT_CYCLE_SIZE CARD_SIZE
+#define MAX_TWO_SUIT_CYCLE_SIZE 1008
 
 #define STR(x) #x
 #define E(l) "internal error (line " STR(l) " in " __FILE__ ")"
 
 class Position {
-private:
-    struct Table {
-        uint64_t z_factor[CARD_SIZE][ID_SIZE];
-        Table() noexcept {
-            mt19937_64 mt(0);
-            for (int i=0; i<CARD_SIZE; ++i)
-                for (int j=0; j<ID_SIZE; ++j)
-                    z_factor[i][j] = mt(); 
-        };
-        uint64_t get(const Card& card, const Card& below) const noexcept {
-            assert(card && below);
-            return z_factor[card.get_id()][below.get_id()]; 
-        };
-    };
-
-#ifdef TEST_ZKEY
 public:
+#ifdef TEST_ZKEY
     union Union_array_card {
         Card m_array_card_below[56] = {};
         uint64_t m_array_card_belows[7];
@@ -86,66 +69,52 @@ public:
     };
 #endif
 
-private:
-    class Entry_tt {
+    class Two_suit_cycle {
     private:
-        unsigned char m_h_cost;
-        bool m_is_decided;
-        Card m_candidate_homecell_next[HOMECELL_SIZE];
-#ifdef TEST_ZKEY
-        Position::Union_array_card m_union_array_card_below;
-#endif
-
-        bool correct() const;
+        Card m_card1, m_card2;
+        bool m_is_target;
 
     public:
-        Entry_tt(int h_cost, const Position& position, const Card* candidate_homecell_next) noexcept : m_is_decided(false) {
-            assert((h_cost >= 0) && (h_cost < 256));
-            copy_n(candidate_homecell_next, SUIT_SIZE, m_candidate_homecell_next);
-#ifdef TEST_ZKEY
-            m_union_array_card_below.set_array_card_belows(position.m_union_array_card_below.get_array_card_belows());
-#endif
+        Two_suit_cycle(const Card& card1, const Card& card2, bool is_target) noexcept : m_card1(card1), m_card2(card2), m_is_target(is_target) {};
+        Two_suit_cycle() noexcept : m_card1(Card()), m_card2(Card()), m_is_target(true) {};
+        bool correct() const noexcept {
+            if (m_card1 == m_card2) 
+                return false;
+            if (m_card1.suit() == m_card2.suit())
+                return false;
+            if (m_card1.rank() == 0)
+                return false;
+            if (m_card2.rank() == 0)
+                return false;
+            return true; 
+        };
+        void set_is_target(bool is_target) noexcept {
+            m_is_target = is_target;
             assert(correct());
         };
-        void set_h_cost(int h_cost) noexcept {
-            assert((h_cost >= 0) && (h_cost < 256));
-            m_h_cost = h_cost;
+        const Card& get_card1() const noexcept {
             assert(correct());
+            return m_card1;
         };
-        void set_is_decided(bool is_decided) noexcept {
-            assert(! m_is_decided);
-            m_is_decided = is_decided;
+        const Card& get_card2() const noexcept {
             assert(correct());
+            return m_card2;
         };
-        int get_h_cost() const noexcept {
+        bool get_is_target() const noexcept {
             assert(correct());
-            return m_h_cost;
+            return m_is_target;
         };
-        bool get_is_decided() const noexcept {
-            assert(correct());
-            return m_is_decided;
-        };
-        const Card* get_candidate_homecell_next() const noexcept {
-            assert(correct());
-            return m_candidate_homecell_next;
-        };
-#ifdef TEST_ZKEY
-        bool identify(const Position& position) const noexcept {
-            assert(correct());
-            return m_union_array_card_below.identify(position.m_union_array_card_below);
-        };
-#endif      
     };
 
-public:
+
     class Action {
     private:
         char m_from, m_to;
 
         Action(int from, int to) noexcept : m_from(from), m_to(to) {};
-        
+
     public:
-        Action() noexcept : m_from(Position::bad_location) {};
+        Action() noexcept : m_from(64) {};
         bool correct() const noexcept {
             if (m_from == m_to) 
                 return false;
@@ -169,45 +138,22 @@ public:
         friend Position;
     };
 
-    class Action_for_h {
-    private:
-        Card m_card;
-        unsigned char m_from, m_to;
-
-        Action_for_h(const Card& card, int from, int to) noexcept : m_card(card), m_from(from), m_to(to) {};
-
-    public:
-        Action_for_h() noexcept : m_from(Position::bad_location) {};
-        bool correct() const noexcept {
-            if (! (m_card.is_card()))
-                return false;
-            if (! ((m_card.get_id() >= 0) && (m_card.get_id() <= 51)))
-                return false;
-            if (m_from == m_to) 
-                return false;
-            if ((m_from >= 0) && (m_from <= 7))
-                return (m_to == 8) || ((m_to >= 12) && (m_to <= 15));
-            if ((m_from >= 8) && (m_from <= 11))
-                return (m_to >= 12) && (m_to <= 15);
-            return false; 
+private:
+    struct Table {
+        uint64_t z_factor[CARD_SIZE][ID_SIZE];
+        Table() noexcept {
+            mt19937_64 mt(0);
+            for (int i=0; i<CARD_SIZE; ++i)
+                for (int j=0; j<ID_SIZE; ++j)
+                    z_factor[i][j] = mt(); 
         };
-        const Card& get_card() const noexcept {
-            assert(correct());
-            return m_card;
+        uint64_t get(const Card& card, const Card& below) const noexcept {
+            assert(card && below);
+            return z_factor[card.get_id()][below.get_id()]; 
         };
-        int get_from() const noexcept {
-            assert(correct());
-            return m_from;
-        };
-        int get_to() const noexcept {
-            assert(correct());
-            return m_to;
-        };
-        friend Position;
     };
 
-private:
-    static Position::Table table;
+    static Table table;
     static constexpr int bad_location = 64;
 #ifdef TEST_ZKEY
     Position::Union_array_card m_union_array_card_below;
@@ -227,21 +173,21 @@ private:
     int m_ncard_freecell;
     int m_ncard_tableau;
     unsigned char m_array_location[CARD_SIZE];
-    Bits m_bits_deadlocked;
-    unsigned char m_ncard_deadlocked;
-    unsigned char m_array_ncard_not_deadlocked_below_and[CARD_SIZE];
-    bool m_is_solved;
-    unordered_map<uint64_t, Position::Entry_tt> m_tt;
+    Card m_array_single_suit_cycle[MAX_SINGLE_SUIT_CYCLE_SIZE];
+    unsigned char m_nsingle_suit_cycle;
+    Bits m_bits_single_suit_cycle;
+    Two_suit_cycle m_array_two_suit_cycle[MAX_TWO_SUIT_CYCLE_SIZE];
+    unsigned int m_ntwo_suit_cycle;
+    unsigned char m_count_in_two_suit_cycle[CARD_SIZE];
 
     bool correct() const;
-    bool correct_for_h() const;
     void initialize(const Card (&)[TABLEAU_COLUMN_SIZE][64], const Card (&)[HOMECELL_SIZE], const Card (&)[FREECELL_SIZE]) noexcept;
     int find_freecell_empty() const noexcept {
         int i;
         for (i=0; i<FREECELL_SIZE; ++i)
             if (! m_array_freecell[i]) 
                 break;
-        return i;
+        return i; 
     };
     int find_column_empty() const noexcept {
         int i;
@@ -250,7 +196,7 @@ private:
                 break;
         return i; 
     };
-    Card obtain_top_in_homecell(const Card& card) const noexcept {
+    Card obtain_below_homecell(const Card& card) const noexcept {
         if (card.rank() == 0) 
             return Card::homecell();
         return Card(card.suit(), card.rank() - 1); 
@@ -269,56 +215,34 @@ private:
 
 public:
     Position(int) noexcept;
-    bool correct_Action(const Position::Action&) const noexcept;
-    bool correct_Action(const Position::Action_for_h&) const noexcept;
+    bool correct_Action(const Action&) const noexcept;
     uint64_t get_zobrist_key() const noexcept {
         assert(correct());
-        return m_zobrist_key;
+        return m_zobrist_key;   
     };
-    uint64_t get_zobrist_key_for_h() const noexcept {
-        assert(correct_for_h());
-        return m_zobrist_key;
+    int get_nsingle_suit_cycle() const noexcept {
+        assert(correct());
+        return m_nsingle_suit_cycle;
     };
-    int get_ncard_deadlocked() const noexcept {
-        assert(correct_for_h());
-        return m_ncard_deadlocked;
+    int get_ntwo_suit_cycle() const noexcept {
+        assert(correct());
+        return m_ntwo_suit_cycle;
     };
     int ncard_rest() const noexcept {
         assert(correct());
         return m_ncard_freecell + m_ncard_tableau;
     };
-    int ncard_rest_for_h() const noexcept {
-        assert(correct_for_h());
-        return m_ncard_freecell + m_ncard_tableau;
-    };
-    int obtain_lower_h_cost(Card*) noexcept;
-    int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
-        assert(correct_for_h());
-        return m_array_ncard_not_deadlocked_below_and[m_array_column_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()];  
-    };
-    uint64_t m_tt_size() const noexcept {
-        assert(correct_for_h());
-        return m_tt.size();
-    };
-    bool check_goal() const noexcept {
-        assert(correct_for_h());
-        return m_bits_homecell == Bits::full();
-    };
+    void find_cycle() noexcept;
+    void delete_cycle(const Card&) noexcept;
+    void add_cycle(const Card&) noexcept;
+    void check_cycle() const noexcept;
     int calc_h_cost() noexcept;
-    int dfstt1(int, Position::Action_for_h*, Position::Entry_tt&) noexcept;
-    int gen_actions(Position::Action (&)[MAX_ACTION_SIZE]) const noexcept;
-    int move_to_homecell_next(const Card&, Position::Action_for_h*) noexcept;
-    int move_auto(Position::Action*) noexcept;
-    int move_auto(Position::Action_for_h*) noexcept;
-    void back_to_parent(const Position::Action_for_h* history, int naction) noexcept {
-        for (int i=1; i<=naction; ++i)
-            unmake(*(history - i));
-        assert(correct_for_h());
-    };
+    int dfs(int, int, int) noexcept;
+    int gen_actions(Action (&)[MAX_ACTION_SIZE]) const noexcept;
+    int move_auto(Action*) noexcept;
     void make(const Action&) noexcept;
-    void make(const Position::Action_for_h& action) noexcept;
     void unmake(const Action&) noexcept;
-    void unmake(const Position::Action_for_h& action) noexcept;
 };
+  
 
 #endif
