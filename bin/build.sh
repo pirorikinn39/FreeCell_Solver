@@ -1,5 +1,5 @@
 #!/bin/bash -eu
-if [ "$1" = debug ]
+if [ "${1-default}" = debug ]
 then CFLAGS+=" -Wall -O2 -g"
 else CFLAGS+=" -Wall -O2 -DNDEBUG"
 fi
