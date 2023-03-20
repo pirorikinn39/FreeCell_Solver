@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash -eu
 if [ "$1" = debug ]
 then CFLAGS+=" -Wall -O2 -g"
 else CFLAGS+=" -Wall -O2 -DNDEBUG"
