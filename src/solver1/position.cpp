@@ -1,6 +1,4 @@
 #include "position.hpp"
-Position::Table Position::table;
-constexpr int Position::bad_location;
 
 string Position::Action::gen_SN() const noexcept {
     constexpr char tbl[4] = {'a', 'b', 'c', 'd'};
@@ -52,7 +50,7 @@ bool Position::correct() const {
 
 #ifdef TEST_ZKEY
         for (int id=0; id<CARD_SIZE; ++id)
-            zobrist_key ^= Position::table.get(Card(id), m_union_array_card_below.get_array_card_below(id));
+            zobrist_key ^= Position::table.get(Card(id), m_row_data.get_below(id));
 #else
     	for (int id=0; id<CARD_SIZE; ++id)
     		zobrist_key ^= Position::table.get(Card(id), m_array_card_below[id]);
@@ -62,7 +60,7 @@ bool Position::correct() const {
     
     	for (int above=0; above<CARD_SIZE; ++above) {
 #ifdef TEST_ZKEY
-            Card below = m_union_array_card_below.get_array_card_below(above);
+            Card below = m_row_data.get_below(above);
 #else
     		Card below = m_array_card_below[above];
 #endif            
@@ -173,7 +171,7 @@ bool Position::correct() const {
                     throw E(__LINE__);
                 bool is_contained = false;
 #ifdef TEST_ZKEY
-                for (Card below=m_array_column_top[from]; below.is_card(); below=m_union_array_card_below.get_array_card_below(below))
+                for (Card below=m_array_column_top[from]; below.is_card(); below=m_row_data.get_below(below))
                     if (below == id)
                         is_contained = true;
 #else                
@@ -267,9 +265,9 @@ bool Position::correct() const {
         bits_single_suit_cycle.clear();
         for (int column=0; column<TABLEAU_COLUMN_SIZE; ++column) {
 #ifdef TEST_ZKEY
-            for (Card card=m_array_column_top[column]; card.is_card(); card=m_union_array_card_below.get_array_card_below(card)) {
+            for (Card card=m_array_column_top[column]; card.is_card(); card=m_row_data.get_below(card)) {
                 Bits bits_same_suit_small_rank = Bits::same_suit_small_rank(card);
-                for (Card below=m_union_array_card_below.get_array_card_below(card); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
+                for (Card below=m_row_data.get_below(card); below.is_card(); below=m_row_data.get_below(below)) {
                     if (! (Bits(below) & bits_same_suit_small_rank))
                         continue;
                     array_single_suit_cycle[nsingle_suit_cycle++] = card;
@@ -308,7 +306,7 @@ bool Position::correct() const {
         memset(count_in_two_suit_cycle, 0, sizeof(count_in_two_suit_cycle));
         for (int column1=0; column1<TABLEAU_COLUMN_SIZE; ++column1) {
 #ifdef TEST_ZKEY            
-            for (Card card1=m_array_column_top[column1]; card1.is_card(); card1=m_union_array_card_below.get_array_card_below(card1)) {
+            for (Card card1=m_array_column_top[column1]; card1.is_card(); card1=m_row_data.get_below(card1)) {
                 if (Bits(card1) & bits_single_suit_cycle)
                     continue;
                 int suit_card1 = card1.suit();
@@ -321,7 +319,7 @@ bool Position::correct() const {
                     int column2 = m_array_location[prev_card1.get_id()];
                     if (column2 < column1)
                         continue;
-                    for (Card card2=m_array_column_top[column2]; card2!=prev_card1; card2=m_union_array_card_below.get_array_card_below(card2)) {
+                    for (Card card2=m_array_column_top[column2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
                         if (bits_explored_card2.is_set_bit(card2))
                             continue;
                         if (Bits(card2) & bits_single_suit_cycle)
@@ -330,7 +328,7 @@ bool Position::correct() const {
                             continue;
                         bits_explored_card2.set_bit(card2);
                         Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
-                        for (Card below1=m_union_array_card_below.get_array_card_below(card1); below1.is_card(); below1=m_union_array_card_below.get_array_card_below(below1)) {
+                        for (Card below1=m_row_data.get_below(card1); below1.is_card(); below1=m_row_data.get_below(below1)) {
                             if (! (Bits(below1) & bits_same_suit_small_rank_card2))
                                 continue;
                             array_two_suit_cycle[ntwo_suit_cycle++] = Two_suit_cycle(card1, card2, true);
@@ -407,9 +405,6 @@ bool Position::correct() const {
 }
 
 void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Card (&array_homecell)[HOMECELL_SIZE], const Card (&array_freecell)[FREECELL_SIZE]) noexcept {
-#ifdef TEST_ZKEY
-    m_union_array_card_below = Position::Union_array_card();
-#endif
     m_zobrist_key = 0ULL;
     m_ncard_tableau = m_ncard_freecell = 0;
     m_bits_column_top.clear();
@@ -423,7 +418,7 @@ void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Ca
         int h = 0;
         m_array_bits_column_card[column] |= Bits(field[column][h]);
 #ifdef TEST_ZKEY
-        m_union_array_card_below.set_array_card_below(field[column][h], Card::field());
+        m_row_data.set_below(field[column][h], Card::field());
 #else        
         m_array_card_below[field[column][h].get_id()] = Card::field();
 #endif        
@@ -432,7 +427,7 @@ void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Ca
         for (h=1; field[column][h]; ++h) {
             m_array_bits_column_card[column] |= Bits(field[column][h]);
 #ifdef TEST_ZKEY
-            m_union_array_card_below.set_array_card_below(field[column][h], field[column][h - 1]);
+            m_row_data.set_below(field[column][h], field[column][h - 1]);
 #else            
             m_array_card_below[field[column][h].get_id()] = field[column][h - 1];
 #endif            
@@ -455,7 +450,7 @@ void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Ca
         assert(card.is_card());
         m_ncard_freecell += 1;
 #ifdef TEST_ZKEY
-        m_union_array_card_below.set_array_card_below(card, Card::freecell());
+        m_row_data.set_below(card, Card::freecell());
 #else        
         m_array_card_below[card.get_id()] = Card::freecell();
 #endif
@@ -472,7 +467,7 @@ void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Ca
             continue;
         assert(card.is_card() && (card.suit() == suit));
 #ifdef TEST_ZKEY
-        m_union_array_card_below.set_array_card_below(Card(suit, 0), Card::homecell());
+        m_row_data.set_below(Card(suit, 0), Card::homecell());
 #else        
         m_array_card_below[Card(suit, 0).get_id()] = Card::homecell();
 #endif        
@@ -481,7 +476,7 @@ void Position::initialize(const Card (&field)[TABLEAU_COLUMN_SIZE][64], const Ca
         m_bits_homecell.set_bit(Card(suit, 0).get_id());
         for (int rank=1; rank<=card.rank(); ++rank) {
 #ifdef TEST_ZKEY
-            m_union_array_card_below.set_array_card_below(Card(suit, rank), Card(suit, rank - 1));
+            m_row_data.set_below(Card(suit, rank), Card(suit, rank - 1));
 #else            
             m_array_card_below[Card(suit, rank).get_id()] = Card(suit, rank - 1);
 #endif            
@@ -568,9 +563,9 @@ void Position::find_cycle() noexcept {
     m_bits_single_suit_cycle.clear();
     for (int column=0; column<TABLEAU_COLUMN_SIZE; ++column) {
 #ifdef TEST_ZKEY        
-        for (Card card=m_array_column_top[column]; card.is_card(); card=m_union_array_card_below.get_array_card_below(card)) {
+        for (Card card=m_array_column_top[column]; card.is_card(); card=m_row_data.get_below(card)) {
             Bits bits_same_suit_small_rank = Bits::same_suit_small_rank(card);
-            for (Card below=m_union_array_card_below.get_array_card_below(card); below.is_card(); below=m_union_array_card_below.get_array_card_below(below)) {
+            for (Card below=m_row_data.get_below(card); below.is_card(); below=m_row_data.get_below(below)) {
                 if (! (Bits(below) & bits_same_suit_small_rank))
                     continue;
                 m_array_single_suit_cycle[m_nsingle_suit_cycle++] = card;
@@ -597,7 +592,7 @@ void Position::find_cycle() noexcept {
     memset(m_count_in_two_suit_cycle, 0, sizeof(m_count_in_two_suit_cycle));
     for (int column1=0; column1<TABLEAU_COLUMN_SIZE; ++column1) {
 #ifdef TEST_ZKEY        
-        for (Card card1=m_array_column_top[column1]; card1.is_card(); card1=m_union_array_card_below.get_array_card_below(card1)) {
+        for (Card card1=m_array_column_top[column1]; card1.is_card(); card1=m_row_data.get_below(card1)) {
             if (Bits(card1) & m_bits_single_suit_cycle)
                 continue;
             int suit_card1 = card1.suit();
@@ -610,7 +605,7 @@ void Position::find_cycle() noexcept {
                 int column2 = m_array_location[prev_card1.get_id()];
                 if (column2 < column1)
                     continue;
-                for (Card card2=m_array_column_top[column2]; card2!=prev_card1; card2=m_union_array_card_below.get_array_card_below(card2)) {
+                for (Card card2=m_array_column_top[column2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
                     if (bits_explored_card2.is_set_bit(card2))
                         continue;
                     if (Bits(card2) & m_bits_single_suit_cycle)
@@ -619,7 +614,7 @@ void Position::find_cycle() noexcept {
                         continue;
                     bits_explored_card2.set_bit(card2);
                     Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
-                    for (Card below1=m_union_array_card_below.get_array_card_below(card1); below1.is_card(); below1=m_union_array_card_below.get_array_card_below(below1)) {
+                    for (Card below1=m_row_data.get_below(card1); below1.is_card(); below1=m_row_data.get_below(below1)) {
                         if (! (Bits(below1) & bits_same_suit_small_rank_card2))
                             continue;
                         m_array_two_suit_cycle[m_ntwo_suit_cycle++] = Two_suit_cycle(card1, card2, true);
@@ -722,7 +717,7 @@ void Position::add_cycle(const Card& card1) noexcept {
             continue;
         int column2 = m_array_location[prev_card1.get_id()];
 #ifdef TEST_ZKEY
-        for (Card card2=m_array_column_top[column2]; card2!=prev_card1; card2=m_union_array_card_below.get_array_card_below(card2)) {
+        for (Card card2=m_array_column_top[column2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
             if (bits_explored_card2.is_set_bit(card2))
                 continue;
             if (Bits(card2) & m_bits_single_suit_cycle)
@@ -731,7 +726,7 @@ void Position::add_cycle(const Card& card1) noexcept {
                 continue;
             bits_explored_card2.set_bit(card2);
             Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
-            for (Card below1=m_union_array_card_below.get_array_card_below(card1); below1.is_card(); below1=m_union_array_card_below.get_array_card_below(below1)) {
+            for (Card below1=m_row_data.get_below(card1); below1.is_card(); below1=m_row_data.get_below(below1)) {
                 if (! (Bits(below1) & bits_same_suit_small_rank_card2))
                     continue;
                 m_array_two_suit_cycle[m_ntwo_suit_cycle++] = Two_suit_cycle(card1, card2, true);
@@ -962,7 +957,7 @@ int Position::gen_actions(Action (&actions)[MAX_ACTION_SIZE]) const noexcept {
         for (int column=0; column<TABLEAU_COLUMN_SIZE; ++column) {
             Card card = m_array_column_top[column];
 #ifdef TEST_ZKEY
-            if (card.is_card() && m_union_array_card_below.get_array_card_below(card).is_card())
+            if (card.is_card() && m_row_data.get_below(card).is_card())
                 actions[naction++] = Position::Action(column, column_empty);
 #else            
             if (card.is_card() && m_array_card_below[card.get_id()].is_card())
@@ -1000,7 +995,7 @@ void Position::make(const Action& action) noexcept {
         int column = action.get_from();
         Card card = m_array_column_top[column];
 #ifdef TEST_ZKEY
-        Card below = m_union_array_card_below.get_array_card_below(card);
+        Card below = m_row_data.get_below(card);
 #else        
         Card below = m_array_card_below[card.get_id()];
 #endif        
@@ -1046,7 +1041,7 @@ void Position::make(const Action& action) noexcept {
         Card card = m_array_column_top[column_from];
         Card top_to = m_array_column_top[column_to];
 #ifdef TEST_ZKEY
-        Card below_from = m_union_array_card_below.get_array_card_below(card);
+        Card below_from = m_row_data.get_below(card);
 #else        
         Card below_from = m_array_card_below[card.get_id()];
 #endif        
@@ -1112,7 +1107,7 @@ void Position::make(const Action& action) noexcept {
         int column = action.get_from();
         Card card = m_array_column_top[column];
 #ifdef TEST_ZKEY
-        Card below = m_union_array_card_below.get_array_card_below(card);
+        Card below = m_row_data.get_below(card);
 #else        
         Card below = m_array_card_below[card.get_id()];
 #endif        
@@ -1184,7 +1179,7 @@ void Position::unmake(const Action& action) noexcept {
         int column_to   = action.get_to();
         Card card = m_array_column_top[column_to];
 #ifdef TEST_ZKEY
-        Card top_to = m_union_array_card_below.get_array_card_below(card);
+        Card top_to = m_row_data.get_below(card);
 #else        
         Card top_to = m_array_card_below[card.get_id()];
 #endif        
@@ -1224,7 +1219,7 @@ void Position::unmake(const Action& action) noexcept {
         int column = action.get_to();
         Card card = m_array_column_top[column];
 #ifdef TEST_ZKEY
-        Card top = m_union_array_card_below.get_array_card_below(card);
+        Card top = m_row_data.get_below(card);
 #else        
         Card top = m_array_card_below[card.get_id()];
 #endif        

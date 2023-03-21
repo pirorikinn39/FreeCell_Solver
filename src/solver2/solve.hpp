@@ -20,13 +20,13 @@ private:
 		unsigned char m_h_cost;
 		bool m_is_contained_route;
 #ifdef TEST_ZKEY
-		Position::Union_array_card m_union_array_card_below;
+	  Position_row m_union_array_card_below;
 #endif
 	public:
 		Entry_tt(int h_cost, const Position& position) noexcept : m_h_cost(h_cost), m_is_contained_route(false) {
 			assert((h_cost >= 0) && (h_cost <= UCHAR_MAX));
 #ifdef TEST_ZKEY
-			m_union_array_card_below.set_array_card_belows(position);
+			m_union_array_card_below = position.get_row_data();
 #endif
 		};
 		void set_h_cost(int h_cost) noexcept {
@@ -44,7 +44,7 @@ private:
 		};
 #ifdef TEST_ZKEY
 		bool identify(const Position& position) const noexcept {
-			return m_union_array_card_below.identify(position);
+		  return m_union_array_card_below == position.get_row_data();
 		};
 #endif		
 	};

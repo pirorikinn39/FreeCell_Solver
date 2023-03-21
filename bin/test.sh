@@ -1,5 +1,5 @@
-#!/bin/bash -u
-bin/build.sh
+#!/bin/bash -ue
+bin/build.sh $@
 for i in {1..100}
 do
     printf "Game #%04d: solver1..." $i

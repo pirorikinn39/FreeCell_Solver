@@ -1,74 +1,23 @@
+#ifndef POSITION_H
+#define POSITION_H
+
 #include <iostream>
 #include <iomanip>
 #include <cassert>
-#include <random>
 #include <fstream>
 #include <cmath>
 #include <utility>
 #include <string>
 #include <string.h>
 #include <algorithm>
+#include "../common/position-base.hpp"
 #include "../common/bits.hpp"
 
-#ifndef Position_h
-#define Position_h
-
-#define MAX_ACTION_SIZE 34
 #define MAX_SINGLE_SUIT_CYCLE_SIZE CARD_SIZE
 #define MAX_TWO_SUIT_CYCLE_SIZE 1008
 
-#define STR(x) #x
-#define E(l) "internal error (line " STR(l) " in " __FILE__ ")"
-
-class Position {
+class Position : public Position_base {
 public:
-#ifdef TEST_ZKEY
-    union Union_array_card {
-        Card m_array_card_below[56] = {};
-        uint64_t m_array_card_belows[7];
-
-        void set_array_card_below(int id, const Card& below) noexcept {  
-            assert((0 <= id) && (id <= 51));
-            assert(Card(id) && below);
-            m_array_card_below[id] = below;
-        };
-        void set_array_card_below(const Card& card, const Card& below) noexcept {  
-            assert(card && below);
-            set_array_card_below(card.get_id(), below);
-        };
-        void set_array_card_belows(const uint64_t* array_card_belows) noexcept {
-            assert(array_card_belows);
-            copy_n(array_card_belows, 7, m_array_card_belows);   
-        };
-        void set_array_card_belows(const Position& position) noexcept {
-            assert(position.correct());
-            set_array_card_belows(position.m_union_array_card_below.m_array_card_belows);  
-        };
-        const Card& get_array_card_below(int id) const noexcept {  
-            assert((0 <= id) && (id <= 51));
-            return m_array_card_below[id];
-        };
-        const Card& get_array_card_below(const Card& card) const noexcept {  
-            return get_array_card_below(card.get_id());
-        };
-        const Card* get_array_card_below() const noexcept {                        
-            return m_array_card_below;
-        };
-        const uint64_t* get_array_card_belows() const noexcept {                        
-            return m_array_card_belows;
-        };
-        bool identify(const Position::Union_array_card& union_array_card) const noexcept {  
-            for (int i=0; i<7; ++i)
-                if (m_array_card_belows[i] != union_array_card.m_array_card_belows[i])
-                    return false;
-            return true;
-        };
-        bool identify(const Position& position) const noexcept {  
-            return identify(position.m_union_array_card_below);
-        };
-    };
-#endif
-
     class Two_suit_cycle {
     private:
         Card m_card1, m_card2;
@@ -139,27 +88,6 @@ public:
     };
 
 private:
-    struct Table {
-        uint64_t z_factor[CARD_SIZE][ID_SIZE];
-        Table() noexcept {
-            mt19937_64 mt(0);
-            for (int i=0; i<CARD_SIZE; ++i)
-                for (int j=0; j<ID_SIZE; ++j)
-                    z_factor[i][j] = mt(); 
-        };
-        uint64_t get(const Card& card, const Card& below) const noexcept {
-            assert(card && below);
-            return z_factor[card.get_id()][below.get_id()]; 
-        };
-    };
-
-    static Table table;
-    static constexpr int bad_location = 64;
-#ifdef TEST_ZKEY
-    Position::Union_array_card m_union_array_card_below;
-#else
-    Card m_array_card_below[CARD_SIZE];
-#endif
     Bits m_array_bits_column_card[TABLEAU_COLUMN_SIZE];
     Card m_array_column_top[TABLEAU_COLUMN_SIZE];
     Card m_array_homecell[HOMECELL_SIZE];
@@ -204,8 +132,8 @@ private:
     void update_array_card_below(const Card& card, const Card& below) noexcept {
         assert(card.is_card() && below.is_card_or_location() && (card != below));
 #ifdef TEST_ZKEY
-        m_zobrist_key ^= Position::table.get(card, m_union_array_card_below.get_array_card_below(card));
-        m_union_array_card_below.set_array_card_below(card, below);
+        m_zobrist_key ^= Position::table.get(card, m_row_data.get_below(card));
+        m_row_data.set_below(card, below);
 #else
         m_zobrist_key ^= Position::table.get(card, m_array_card_below[card.get_id()]);
         m_array_card_below[card.get_id()] = below;
