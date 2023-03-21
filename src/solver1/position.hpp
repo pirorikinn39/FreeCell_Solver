@@ -56,37 +56,6 @@ public:
     };
 
 
-    class Action {
-    private:
-        char m_from, m_to;
-
-        Action(int from, int to) noexcept : m_from(from), m_to(to) {};
-
-    public:
-        Action() noexcept : m_from(64) {};
-        bool correct() const noexcept {
-            if (m_from == m_to) 
-                return false;
-            if ((m_to >= 12) && (m_to <= 15)) 
-                return (m_from >= 0) && (m_from <= 11);
-            if ((m_to >= 8) && (m_to <= 11)) 
-                return (m_from >= 0) && (m_from <= 7);
-            if ((m_to >= 0) && (m_to <= 7)) 
-                return (m_from >= 0) && (m_from <= 11);
-            return false; 
-        };
-        string gen_SN() const noexcept;
-        int get_from() const noexcept {
-            assert(correct());
-            return m_from;
-        };
-        int get_to() const noexcept {
-            assert(correct());
-            return m_to;
-        };
-        friend Position;
-    };
-
 private:
     Bits m_array_bits_column_card[TABLEAU_COLUMN_SIZE];
     Card m_array_column_top[TABLEAU_COLUMN_SIZE];
@@ -131,13 +100,8 @@ private:
     };
     void update_array_card_below(const Card& card, const Card& below) noexcept {
         assert(card.is_card() && below.is_card_or_location() && (card != below));
-#ifdef TEST_ZKEY
         m_zobrist_key ^= Position::table.get(card, m_row_data.get_below(card));
         m_row_data.set_below(card, below);
-#else
-        m_zobrist_key ^= Position::table.get(card, m_array_card_below[card.get_id()]);
-        m_array_card_below[card.get_id()] = below;
-#endif
         m_zobrist_key ^= Position::table.get(card, below);
     };
 

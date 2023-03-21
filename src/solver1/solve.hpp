@@ -52,10 +52,10 @@ private:
 	int m_game_id;
 	Position m_position;
 	bool m_is_solved;
-	Position::Action m_answer[UCHAR_MAX];
+  Action m_answer[UCHAR_MAX];
 	unordered_map<uint64_t, Solve::Entry_tt> m_tt;
 
-	int dfstt1(int, int, Position::Action*, Solve::Entry_tt&) noexcept;
+	int dfstt1(int, int, Action*, Solve::Entry_tt&) noexcept;
 	pair<int, Solve::Entry_tt&> lookup(Position& position) noexcept {
 		auto it = m_tt.find(position.get_zobrist_key());
     	if (it != m_tt.end()) {

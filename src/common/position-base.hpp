@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <random>
+#include <string>
 #include <cstdint>
 #include "card.hpp"
 
@@ -10,9 +11,10 @@
 #define E(l) "internal error (line " STR(l) " in " __FILE__ ")"
 
 #define MAX_ACTION_SIZE 40 // 34 seems sufficient.
+#define BAD_LOCATION    64
 
-union Position_row {
 #ifdef TEST_ZKEY
+union Position_row {
   Position_row() noexcept { m_array_u64[6] = 0ULL; }
   Position_row& operator=(const Position_row& o) noexcept {
     assert(o.ok());
@@ -33,6 +35,7 @@ union Position_row {
 private:
   uint64_t m_array_u64[7];
 #else
+struct Position_row {
   Position_row& operator=(const Position_row& o) noexcept {
     assert(o.ok());
     if (this != &o) copy_n(o.m_array_i8, 52, m_array_i8);
@@ -60,6 +63,23 @@ public:
 private:
   Card m_array_i8[56];
 };
+  
+class Action {
+  char m_from, m_to;
+    
+public:
+  Action() noexcept : m_from(BAD_LOCATION) {};
+  Action(int from, int to) noexcept : m_from(from), m_to(to) {};
+  bool ok() const noexcept {
+    if (m_from == m_to)  return false;
+    if (12 <= m_to && m_to <= 15) return (0 <= m_from && m_from <= 11);
+    if ( 8 <= m_to && m_to <= 11) return (0 <= m_from && m_from <=  7);
+    if ( 0 <= m_to && m_to <=  7) return (0 <= m_from && m_from <= 11);
+    return false; }
+  string gen_SN() const noexcept;
+  int get_from() const noexcept { assert(ok()); return m_from; }
+  int get_to() const noexcept { assert(ok()); return m_to; }
+};
 
 class Position_base {
 protected:
@@ -74,17 +94,10 @@ protected:
       return z_factor[card.get_id()][below.get_id()]; }
   };
   static Table table;
-  static constexpr int bad_location = 64;
-#ifdef TEST_ZKEY
   Position_row m_row_data;
-#else
-  Card m_array_card_below[CARD_SIZE];
-#endif
-
+  
 public:
-#ifdef TEST_ZKEY
   const Position_row& get_row_data() const noexcept { return m_row_data; }
-#endif
 };
 
 #endif

@@ -71,36 +71,6 @@ private:
     };
 
 public:
-    class Action {
-    private:
-        char m_from, m_to;
-
-        Action(int from, int to) noexcept : m_from(from), m_to(to) {};
-        
-    public:
-      Action() noexcept : m_from(Position::bad_location) {};
-        bool correct() const noexcept {
-            if (m_from == m_to) 
-                return false;
-            if ((m_to >= 12) && (m_to <= 15)) 
-                return (m_from >= 0) && (m_from <= 11);
-            if ((m_to >= 8) && (m_to <= 11)) 
-                return (m_from >= 0) && (m_from <= 7);
-            if ((m_to >= 0) && (m_to <= 7)) 
-                return (m_from >= 0) && (m_from <= 11);
-            return false; 
-        };
-        string gen_SN() const noexcept;
-        int get_from() const noexcept {
-            assert(correct());
-            return m_from;
-        };
-        int get_to() const noexcept {
-            assert(correct());
-            return m_to;
-        };
-        friend Position;
-    };
 
     class Action_for_h {
     private:
@@ -110,7 +80,7 @@ public:
         Action_for_h(const Card& card, int from, int to) noexcept : m_card(card), m_from(from), m_to(to) {};
 
     public:
-      Action_for_h() noexcept : m_from(Position::bad_location) {};
+      Action_for_h() noexcept : m_from(BAD_LOCATION) {};
         bool correct() const noexcept {
             if (! (m_card.is_card()))
                 return false;
@@ -183,19 +153,14 @@ private:
     };
     void update_array_card_below(const Card& card, const Card& below) noexcept {
         assert(card.is_card() && below.is_card_or_location() && (card != below));
-#ifdef TEST_ZKEY
         m_zobrist_key ^= Position::table.get(card, m_row_data.get_below(card));
         m_row_data.set_below(card, below);
-#else
-        m_zobrist_key ^= Position::table.get(card, m_array_card_below[card.get_id()]);
-        m_array_card_below[card.get_id()] = below;
-#endif
         m_zobrist_key ^= Position::table.get(card, below);
     };
 
 public:
     Position(int) noexcept;
-    bool correct_Action(const Position::Action&) const noexcept;
+    bool correct_Action(const Action&) const noexcept;
     bool correct_Action(const Position::Action_for_h&) const noexcept;
     uint64_t get_zobrist_key() const noexcept {
         assert(correct());
@@ -231,10 +196,10 @@ public:
         return m_bits_homecell == Bits::full();
     };
     int calc_h_cost() noexcept;
-    int dfstt1(int, Position::Action_for_h*, Position::Entry_tt&) noexcept;
-    int gen_actions(Position::Action (&)[MAX_ACTION_SIZE]) const noexcept;
-    int move_to_homecell_next(const Card&, Position::Action_for_h*) noexcept;
-    int move_auto(Position::Action*) noexcept;
+    int dfstt1(int, Action_for_h*, Position::Entry_tt&) noexcept;
+    int gen_actions(Action (&)[MAX_ACTION_SIZE]) const noexcept;
+    int move_to_homecell_next(const Card&, Action_for_h*) noexcept;
+    int move_auto(Action*) noexcept;
     int move_auto(Position::Action_for_h*) noexcept;
     void back_to_parent(const Position::Action_for_h* history, int naction) noexcept {
         for (int i=1; i<=naction; ++i)

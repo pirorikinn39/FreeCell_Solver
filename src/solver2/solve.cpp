@@ -1,6 +1,6 @@
 #include "solve.hpp"
 
-int Solve::dfstt1(int th, int g_cost, Position::Action* path, Solve::Entry_tt& entry_m_position) noexcept {
+int Solve::dfstt1(int th, int g_cost, Action* path, Solve::Entry_tt& entry_m_position) noexcept {
     if (m_position.ncard_rest() == 0) {
         m_is_solved = true;
         copy_n(path, g_cost, m_answer);
@@ -15,7 +15,7 @@ int Solve::dfstt1(int th, int g_cost, Position::Action* path, Solve::Entry_tt& e
     }
     entry_m_position.set_is_contained_route(true);
 
-    Position::Action actions[MAX_ACTION_SIZE];
+    Action actions[MAX_ACTION_SIZE];
     int new_th;
     int naction = m_position.gen_actions(actions);
     assert(naction <= MAX_ACTION_SIZE);
@@ -60,7 +60,7 @@ int Solve::dfstt1(int th, int g_cost, Position::Action* path, Solve::Entry_tt& e
 }
 
 Solve::Solve(int game_id) noexcept : m_game_id(game_id), m_position(m_game_id) {
-  Position::Action path[UCHAR_MAX];
+  Action path[UCHAR_MAX];
   int nauto = m_position.move_auto(path);
   int g_cost = nauto;
   int th = m_position.calc_h_cost();
