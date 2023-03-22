@@ -7,8 +7,11 @@ DEBUG=" -DNDEBUG"
 TEST_ZKEY=""
 for arg in $@
 do
-    if [ $arg == debug ]; then DEBUG=" -g"; fi
-    if [ $arg == test-zkey ]; then TEST_ZKEY=" -DTEST_ZKEY"; fi
+    case $arg in
+	debug ) DEBUG=" -g";;
+	test-zkey ) TEST_ZKEY=" -DTEST_ZKEY";;
+	* ) echo "bad argument: $arg" >&2; exit 1;;
+    esac
 done
 CFLAGS+=" -Wall -O2 $DEBUG$TEST_ZKEY"
 

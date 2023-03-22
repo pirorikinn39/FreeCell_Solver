@@ -8,10 +8,6 @@ using namespace std;
 #define SUIT_SIZE 4
 #define RANK_SIZE 13
 #define CARD_SIZE (SUIT_SIZE * RANK_SIZE)
-#define HOMECELL_SIZE 4
-#define FREECELL_SIZE 4
-#define TABLEAU_COLUMN_SIZE 8
-#define MAX_TABLEAU_STACK_SIZE 19
 #define ID_SIZE 55
 
 class Card {

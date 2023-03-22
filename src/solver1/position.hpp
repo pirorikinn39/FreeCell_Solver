@@ -57,19 +57,6 @@ public:
 
 
 private:
-    Bits m_array_bits_column_card[TABLEAU_COLUMN_SIZE];
-    Card m_array_column_top[TABLEAU_COLUMN_SIZE];
-    Card m_array_homecell[HOMECELL_SIZE];
-    Card m_array_freecell[FREECELL_SIZE];
-    Bits m_bits_homecell;
-    Bits m_bits_freecell;
-    Bits m_bits_homecell_next;
-    Bits m_bits_column_top;
-    Bits m_array_bits_column_next[TABLEAU_COLUMN_SIZE];
-    uint64_t m_zobrist_key;
-    int m_ncard_freecell;
-    int m_ncard_tableau;
-    unsigned char m_array_location[CARD_SIZE];
     Card m_array_single_suit_cycle[MAX_SINGLE_SUIT_CYCLE_SIZE];
     unsigned char m_nsingle_suit_cycle;
     Bits m_bits_single_suit_cycle;
@@ -77,33 +64,8 @@ private:
     unsigned int m_ntwo_suit_cycle;
     unsigned char m_count_in_two_suit_cycle[CARD_SIZE];
 
-    bool correct() const;
-    void initialize(const Card (&)[TABLEAU_COLUMN_SIZE][64], const Card (&)[HOMECELL_SIZE], const Card (&)[FREECELL_SIZE]) noexcept;
-    int find_freecell_empty() const noexcept {
-        int i;
-        for (i=0; i<FREECELL_SIZE; ++i)
-            if (! m_array_freecell[i]) 
-                break;
-        return i; 
-    };
-    int find_column_empty() const noexcept {
-        int i;
-        for (i=0; i<TABLEAU_COLUMN_SIZE; ++i)
-            if (! m_array_column_top[i]) 
-                break;
-        return i; 
-    };
-    Card obtain_below_homecell(const Card& card) const noexcept {
-        if (card.rank() == 0) 
-            return Card::homecell();
-        return Card(card.suit(), card.rank() - 1); 
-    };
-    void update_array_card_below(const Card& card, const Card& below) noexcept {
-        assert(card.is_card() && below.is_card_or_location() && (card != below));
-        m_zobrist_key ^= Position::table.get(card, m_row_data.get_below(card));
-        m_row_data.set_below(card, below);
-        m_zobrist_key ^= Position::table.get(card, below);
-    };
+  bool correct() const noexcept;
+  void initialize(const Card (&)[TABLEAU_SIZE][64], const Card (&)[HOMECELL_SIZE], const Card (&)[FREECELL_SIZE]) noexcept;
 
 public:
     Position(int) noexcept;
