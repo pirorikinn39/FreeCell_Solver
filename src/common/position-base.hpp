@@ -86,10 +86,10 @@ public:
 class Position_base {
 protected:
   struct Table {
-    uint64_t z_factor[CARD_SIZE][ID_SIZE];
+    uint64_t z_factor[DECK_SIZE][ID_SIZE];
     Table() noexcept {
       mt19937_64 mt(0);
-      for (int i=0; i<CARD_SIZE; ++i)
+      for (int i=0; i<DECK_SIZE; ++i)
 	for (int j=0; j<ID_SIZE; ++j) z_factor[i][j] = mt(); }
     uint64_t get(const Card& card, const Card& below) const noexcept {
       assert(card.is_card() && below);
@@ -97,20 +97,22 @@ protected:
   };
   static Table table;
   Position_row m_row_data;
-  Bits m_array_bits_column_card[TABLEAU_SIZE];
-  Card m_array_column_top[TABLEAU_SIZE];
+  Bits m_array_bits_pile_card[TABLEAU_SIZE];
+  Card m_array_pile_top[TABLEAU_SIZE];
   Card m_array_homecell[HOMECELL_SIZE];
   Card m_array_freecell[FREECELL_SIZE];
   Bits m_bits_homecell;
   Bits m_bits_freecell;
   Bits m_bits_homecell_next;
-  Bits m_bits_column_top;
-  Bits m_array_bits_column_next[TABLEAU_SIZE];
+  Bits m_bits_pile_top;
+  Bits m_array_bits_pile_next[TABLEAU_SIZE];
   uint64_t m_zobrist_key;
   int m_ncard_freecell;
   int m_ncard_tableau;
-  unsigned char m_array_location[CARD_SIZE];
+  unsigned char m_array_location[DECK_SIZE];
   
+  void initialize(const Card (&)[TABLEAU_SIZE][64], const Card (&)[HOMECELL_SIZE],
+		  const Card (&)[FREECELL_SIZE]) noexcept;
   void update_array_card_below(const Card& card, const Card& below) noexcept {
     assert(card.is_card() && below && card != below);
     m_zobrist_key ^= table.get(card, m_row_data.get_below(card));
@@ -124,7 +126,7 @@ protected:
   int find_column_empty() const noexcept {
     int i;
     for (i=0; i<TABLEAU_SIZE; ++i)
-      if (! m_array_column_top[i]) break;
+      if (! m_array_pile_top[i]) break;
     return i; }
   Card obtain_below_homecell(const Card& card) const noexcept {
     assert(card.is_card());
@@ -132,6 +134,8 @@ protected:
     return Card(card.suit(), card.rank() - 1); }
   
 public:
+  explicit Position_base(int seed) noexcept;
+  
   const Position_row& get_row_data() const noexcept { return m_row_data; }
   bool ok() const noexcept;
 };

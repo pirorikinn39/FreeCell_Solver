@@ -17,7 +17,7 @@
 #include "../common/bits.hpp"
 
 
-#define MAX_H_COST (CARD_SIZE * 2)
+#define MAX_H_COST (DECK_SIZE * 2)
 
 class Position : public Position_base {
 
@@ -35,7 +35,7 @@ private:
     public:
       Entry_tt(int h_cost, const Position& position, const Card* candidate_homecell_next) noexcept : m_h_cost(h_cost), m_is_decided(false) {
             assert((h_cost >= 0) && (h_cost < 256));
-            copy_n(candidate_homecell_next, SUIT_SIZE, m_candidate_homecell_next);
+            copy_n(candidate_homecell_next, N_SUIT, m_candidate_homecell_next);
 #ifdef TEST_ZKEY
             m_row_data = position.get_row_data();
 #endif
@@ -112,16 +112,16 @@ public:
 private:
   Bits m_bits_deadlocked;
   unsigned char m_ncard_deadlocked;
-  unsigned char m_array_ncard_not_deadlocked_below_and[CARD_SIZE];
+  unsigned char m_array_ncard_not_deadlocked_below_and[DECK_SIZE];
   bool m_is_solved;
   unordered_map<uint64_t, Position::Entry_tt> m_tt;
 
   bool correct() const noexcept;
   bool correct_for_h() const;
-    void initialize(const Card (&)[TABLEAU_SIZE][64], const Card (&)[HOMECELL_SIZE], const Card (&)[FREECELL_SIZE]) noexcept;
+  void initialize() noexcept;
 
 public:
-    Position(int) noexcept;
+  explicit Position(int) noexcept;
     bool correct_Action(const Action&) const noexcept;
     bool correct_Action(const Position::Action_for_h&) const noexcept;
     uint64_t get_zobrist_key() const noexcept {
@@ -147,7 +147,7 @@ public:
     int obtain_lower_h_cost(Card*) noexcept;
     int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
         assert(correct_for_h());
-        return m_array_ncard_not_deadlocked_below_and[m_array_column_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()];  
+        return m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()];  
     };
     uint64_t m_tt_size() const noexcept {
         assert(correct_for_h());

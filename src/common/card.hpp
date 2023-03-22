@@ -5,9 +5,9 @@
 #include <cstdint>
 using namespace std;
 
-#define SUIT_SIZE 4
-#define RANK_SIZE 13
-#define CARD_SIZE (SUIT_SIZE * RANK_SIZE)
+#define N_SUIT 4
+#define N_RANK 13
+#define DECK_SIZE (N_SUIT * N_RANK)
 #define ID_SIZE 55
 
 class Card {
@@ -32,8 +32,8 @@ public:
   static constexpr Card homecell() noexcept { return Card(Card::homecell_id); }
   static constexpr Card freecell() noexcept { return Card(Card::freecell_id); }
   static constexpr Card field() noexcept { return Card(Card::field_id); }
-  static constexpr int suit(int id) noexcept { return id / RANK_SIZE; }
-  static constexpr int rank(int id) noexcept { return id % RANK_SIZE; }
+  static constexpr int suit(int id) noexcept { return id / N_RANK; }
+  static constexpr int rank(int id) noexcept { return id % N_RANK; }
   static pair<int, int> suits_xcolor(int id) noexcept {
     if (id <= 25) return {2, 3};
     return {0, 1}; }

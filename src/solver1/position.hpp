@@ -13,7 +13,7 @@
 #include "../common/position-base.hpp"
 #include "../common/bits.hpp"
 
-#define MAX_SINGLE_SUIT_CYCLE_SIZE CARD_SIZE
+#define MAX_SINGLE_SUIT_CYCLE_SIZE DECK_SIZE
 #define MAX_TWO_SUIT_CYCLE_SIZE 1008
 
 class Position : public Position_base {
@@ -62,13 +62,12 @@ private:
     Bits m_bits_single_suit_cycle;
     Two_suit_cycle m_array_two_suit_cycle[MAX_TWO_SUIT_CYCLE_SIZE];
     unsigned int m_ntwo_suit_cycle;
-    unsigned char m_count_in_two_suit_cycle[CARD_SIZE];
+    unsigned char m_count_in_two_suit_cycle[DECK_SIZE];
 
   bool correct() const noexcept;
-  void initialize(const Card (&)[TABLEAU_SIZE][64], const Card (&)[HOMECELL_SIZE], const Card (&)[FREECELL_SIZE]) noexcept;
 
 public:
-    Position(int) noexcept;
+  explicit Position(int) noexcept;
     bool correct_Action(const Action&) const noexcept;
     uint64_t get_zobrist_key() const noexcept {
         assert(correct());

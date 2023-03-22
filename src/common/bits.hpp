@@ -7,13 +7,13 @@
 
 class Bits {
   struct Table {
-    uint64_t bits[CARD_SIZE];
-    uint64_t bits_next[CARD_SIZE];
-    uint64_t bits_placeable[CARD_SIZE];
-    uint64_t bits_same_suit_small_rank[CARD_SIZE];
-    uint64_t bits_different_suit[CARD_SIZE];
+    uint64_t bits[DECK_SIZE];
+    uint64_t bits_next[DECK_SIZE];
+    uint64_t bits_placeable[DECK_SIZE];
+    uint64_t bits_same_suit_small_rank[DECK_SIZE];
+    uint64_t bits_different_suit[DECK_SIZE];
     Table() noexcept {
-      for (int id=0; id<CARD_SIZE; ++id) {
+      for (int id=0; id<DECK_SIZE; ++id) {
 	bits[id] = 1ULL << (63 - id);
 	
 	Card next = Card::next(id);
