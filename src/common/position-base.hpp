@@ -17,14 +17,11 @@
 #define FREECELL_SIZE    4
 #define TABLEAU_SIZE     8
 
-#ifdef TEST_ZKEY
 union Position_row {
+#ifdef TEST_ZKEY
   Position_row() noexcept { m_array_u64[6] = 0ULL; }
-#else
-struct Position_row {
 #endif
   
-public:  
   Position_row& operator=(const Position_row& o) noexcept {
     assert(o.ok());
 #ifdef TEST_ZKEY
@@ -35,11 +32,11 @@ public:
     return *this; }
   void set_below(const Card& card, const Card& below) noexcept {  
     assert(card.is_card() && below);
-    m_array_i8[card.get_id()] = below; }
-  const Card& get_below(int id) const noexcept {
+    m_array_i8[card.get_id()] = below.get_id(); }
+  const Card get_below(int id) const noexcept {
     assert(0 <= id && id <= 51 && ok());
-    return m_array_i8[id]; }
-  const Card& get_below(const Card& card) const noexcept { return get_below(card.get_id()); }
+    return Card(m_array_i8[id]); }
+  const Card get_below(const Card& card) const noexcept { return get_below(card.get_id()); }
   bool operator==(const Position_row& o) const noexcept {
     assert(ok() && o.ok());
 #ifdef TEST_ZKEY
@@ -52,10 +49,10 @@ public:
     return true; }
   bool ok() const noexcept {
     for (int id=0; id<52; ++id)
-      if (! m_array_i8[id]) return false;
+      if (! Card(m_array_i8[id])) return false;
 #ifdef TEST_ZKEY
     for (int id=52; id<56; ++id)
-      if (m_array_i8[id].get_id() != 0) return false;
+      if (m_array_i8[id] != 0) return false;
 #endif
     return true; }
 
@@ -63,7 +60,7 @@ private:
 #ifdef TEST_ZKEY
   uint64_t m_array_u64[7];
 #endif
-  Card m_array_i8[56];
+  int8_t m_array_i8[56];
 };
   
 class Action {
