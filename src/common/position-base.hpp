@@ -123,7 +123,7 @@ protected:
     for (i=0; i<FREECELL_SIZE; ++i)
       if (! m_array_freecell[i]) break;
         return i; }
-  int find_column_empty() const noexcept {
+  int find_pile_empty() const noexcept {
     int i;
     for (i=0; i<TABLEAU_SIZE; ++i)
       if (! m_array_pile_top[i]) break;
@@ -134,10 +134,16 @@ protected:
     return Card(card.suit(), card.rank() - 1); }
   
 public:
-  explicit Position_base(int seed) noexcept;
+  explicit Position_base(int) noexcept;
   
-  const Position_row& get_row_data() const noexcept { return m_row_data; }
+  void make(const Action& action) noexcept;
+  
+  int gen_actions(Action (&)[MAX_ACTION_SIZE]) const noexcept;
+  bool is_legal(const Action&) const noexcept;
   bool ok() const noexcept;
+  uint64_t get_zobrist_key() const noexcept { return m_zobrist_key; }
+  int ncard_rest() const noexcept { return m_ncard_freecell + m_ncard_tableau; }
+  const Position_row& get_row_data() const noexcept { return m_row_data; }
 };
 
 #endif

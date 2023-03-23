@@ -122,12 +122,7 @@ private:
 
 public:
   explicit Position(int) noexcept;
-    bool correct_Action(const Action&) const noexcept;
     bool correct_Action(const Position::Action_for_h&) const noexcept;
-    uint64_t get_zobrist_key() const noexcept {
-        assert(correct());
-        return m_zobrist_key;
-    };
     uint64_t get_zobrist_key_for_h() const noexcept {
         assert(correct_for_h());
         return m_zobrist_key;
@@ -135,10 +130,6 @@ public:
     int get_ncard_deadlocked() const noexcept {
         assert(correct_for_h());
         return m_ncard_deadlocked;
-    };
-    int ncard_rest() const noexcept {
-        assert(correct());
-        return m_ncard_freecell + m_ncard_tableau;
     };
     int ncard_rest_for_h() const noexcept {
         assert(correct_for_h());
@@ -159,7 +150,6 @@ public:
     };
     int calc_h_cost() noexcept;
     int dfstt1(int, Action_for_h*, Position::Entry_tt&) noexcept;
-    int gen_actions(Action (&)[MAX_ACTION_SIZE]) const noexcept;
     int move_to_homecell_next(const Card&, Action_for_h*) noexcept;
     int move_auto(Action*) noexcept;
     int move_auto(Position::Action_for_h*) noexcept;

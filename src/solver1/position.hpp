@@ -68,11 +68,6 @@ private:
 
 public:
   explicit Position(int) noexcept;
-    bool correct_Action(const Action&) const noexcept;
-    uint64_t get_zobrist_key() const noexcept {
-        assert(correct());
-        return m_zobrist_key;   
-    };
     int get_nsingle_suit_cycle() const noexcept {
         assert(correct());
         return m_nsingle_suit_cycle;
@@ -81,17 +76,12 @@ public:
         assert(correct());
         return m_ntwo_suit_cycle;
     };
-    int ncard_rest() const noexcept {
-        assert(correct());
-        return m_ncard_freecell + m_ncard_tableau;
-    };
     void find_cycle() noexcept;
     void delete_cycle(const Card&) noexcept;
     void add_cycle(const Card&) noexcept;
     void check_cycle() const noexcept;
     int calc_h_cost() noexcept;
     int dfs(int, int, int) noexcept;
-    int gen_actions(Action (&)[MAX_ACTION_SIZE]) const noexcept;
     int move_auto(Action*) noexcept;
     void make(const Action&) noexcept;
     void unmake(const Action&) noexcept;
