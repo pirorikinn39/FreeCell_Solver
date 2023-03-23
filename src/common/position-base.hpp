@@ -137,6 +137,7 @@ public:
   explicit Position_base(int) noexcept;
   
   void make(const Action& action) noexcept;
+  void unmake(const Action& action) noexcept;
   
   int gen_actions(Action (&)[MAX_ACTION_SIZE]) const noexcept;
   bool is_legal(const Action&) const noexcept;

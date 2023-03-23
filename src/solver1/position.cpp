@@ -420,131 +420,15 @@ void Position::make(const Action& action) noexcept {
     assert(correct()); }
 
 void Position::unmake(const Action& action) noexcept {
-    if ((action.get_from() <= 7) && (action.get_to() >= 12)) {
-        int column = action.get_from();
-        Card card = m_array_homecell[action.get_to() - 12];
-        Card below = m_array_pile_top[column];
-
-        m_array_bits_pile_card[column].set_bit(card);
-        m_array_bits_pile_next[column] = Bits::placeable(card);
-        m_bits_homecell.clear_bit(card);
-        m_bits_homecell_next ^= Bits(card) | Bits::next(card);
-        m_bits_pile_top.set_bit(card);
-        m_array_location[card.get_id()] = column;
-        m_ncard_tableau += 1;
-        m_array_homecell[card.suit()] = card.prev();
-        m_array_pile_top[column] = card;
-        if (below.is_card()) {
-            m_bits_pile_top.clear_bit(below);
-            update_array_card_below(card, below);
-            add_cycle(card);
-        }
-        else {
-            update_array_card_below(card, Card::field()); 
-        } 
-    }
-
-    else if (action.get_to() >= 12) {
-        int freecell = action.get_from() - TABLEAU_SIZE;
-        Card card = m_array_homecell[action.get_to() - 12];
-
-        m_bits_freecell.set_bit(card.get_id());
-        m_bits_homecell.clear_bit(card.get_id());
-        m_bits_homecell_next ^= Bits(card) | Bits::next(card);
-        m_array_homecell[card.suit()] = card.prev();
-        m_array_freecell[freecell] = card;
-        update_array_card_below(card, Card::freecell());
-        m_ncard_freecell += 1;
-        m_array_location[card.get_id()] = action.get_from(); 
-    }
+    Position_base::unmake(action);
     
-    else if ((action.get_from() <= 7) && (action.get_to() <= 7)) {
-        int column_from = action.get_from();
-        int column_to   = action.get_to();
-        Card card = m_array_pile_top[column_to];
-        Card top_to = m_row_data.get_below(card);
-        Card below_from = m_array_pile_top[column_from];
+    Card card;
+    if (action.get_from() <= 7) card = m_array_pile_top[ action.get_from() ];
+    else                        card = m_array_freecell[ action.get_from() - TABLEAU_SIZE ];
 
-        m_array_bits_pile_card[column_from].set_bit(card);
-        m_array_bits_pile_card[column_to].clear_bit(card);
-        m_array_bits_pile_next[column_from] = Bits::placeable(card);
-        m_array_pile_top[column_from] = card;
-        m_array_location[card.get_id()] = column_from;
-        if (below_from.is_card()) {
-            m_bits_pile_top.clear_bit(below_from);
-            update_array_card_below(card, below_from);
-        }
-        else {
-            update_array_card_below(card, Card::field() ); 
-        }
-
-        if (top_to.is_card()) {
-            m_array_bits_pile_next[column_to] = Bits::placeable(top_to);
-            m_bits_pile_top.set_bit(top_to);
-            m_array_pile_top[column_to] = top_to;
-            delete_cycle(card);
-        }
-        else {
-            m_array_bits_pile_next[column_to].clear();
-            m_array_pile_top[column_to] = Card(); 
-        }
-
-        if (below_from.is_card())
-            add_cycle(card);
-    }
+    if (action.get_to() <= 7 && m_array_pile_top[ action.get_to() ].is_card())
+      delete_cycle(card);
+    if (action.get_from() <= 7 && m_row_data.get_below(card).is_card()) add_cycle(card);
     
-    else if (action.get_to() <= 7) {
-        int freecell = action.get_from() - TABLEAU_SIZE;
-        int column = action.get_to();
-        Card card = m_array_pile_top[column];
-        Card top = m_row_data.get_below(card);
-
-        m_array_bits_pile_card[column].clear_bit(card);
-        m_bits_freecell.set_bit(card);
-        m_bits_pile_top.clear_bit(card);
-        m_array_freecell[freecell] = card;
-        update_array_card_below(card, Card::freecell());
-        m_array_location[card.get_id()] = action.get_from();
-        m_ncard_tableau -= 1;
-        m_ncard_freecell += 1;
-        if (top.is_card()) {
-            m_array_bits_pile_next[column] = Bits::placeable(top);
-            m_bits_pile_top.set_bit(top);
-            m_array_pile_top[column] = top;
-            delete_cycle(card);
-        }
-        else {
-            m_array_bits_pile_next[column].clear();
-            m_array_pile_top[column] = Card(); 
-        } 
-    }
-    
-    else {
-        assert((action.get_from() <= 7) && (action.get_to() <= 11));
-        int freecell = action.get_to() - TABLEAU_SIZE;
-        int column = action.get_from();
-        Card card = m_array_freecell[freecell];
-        Card below = m_array_pile_top[column];
-
-        m_array_bits_pile_card[column].set_bit(card);     
-        m_bits_freecell.clear_bit(card);
-        m_bits_pile_top.set_bit(card);
-        m_array_bits_pile_next[column] = Bits::placeable(card);
-        m_array_pile_top[column] = card;
-        m_array_freecell[freecell] = Card();
-        m_ncard_tableau += 1;
-        m_ncard_freecell -= 1;
-        m_array_location[card.get_id()] = action.get_from();
-        if (below.is_card()) {
-            update_array_card_below(card, below);
-            m_bits_pile_top.clear_bit(below);
-            add_cycle(card);
-        }
-        else {
-            update_array_card_below(card, Card::field()); 
-        } 
-    }
-
     assert(correct());
-    assert(is_legal(action));
-}
+    assert(is_legal(action)); }

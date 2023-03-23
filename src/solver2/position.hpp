@@ -144,10 +144,6 @@ public:
         assert(correct_for_h());
         return m_tt.size();
     };
-    bool check_goal() const noexcept {
-        assert(correct_for_h());
-        return m_bits_homecell == Bits::full();
-    };
     int calc_h_cost() noexcept;
     int dfstt1(int, Action_for_h*, Position::Entry_tt&) noexcept;
     int move_to_homecell_next(const Card&, Action_for_h*) noexcept;
