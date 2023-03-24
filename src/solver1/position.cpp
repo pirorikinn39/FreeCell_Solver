@@ -396,7 +396,7 @@ int Position::move_auto(Action* history) noexcept {
             if (bits_placeable_in_homecell.popu() < 2) 
                 continue; 
         }
-        history[naction] = Action(m_array_location[card.get_id()], card.suit() + 12);
+        history[naction] = Action(card, m_array_location[card.get_id()], card.suit() + 12);
         make(history[naction++]);
         bits_from = m_bits_freecell | m_bits_pile_top;
         bits_possible = bits_from & m_bits_homecell_next;
@@ -408,27 +408,18 @@ void Position::make(const Action& action) noexcept {
     assert(is_legal(action));
     Position_base::make(action);
 
-    Card card;
-    if      (action.get_to() <=  7) card = m_array_pile_top[ action.get_to() ];
-    else if (action.get_to() <= 11) card = m_array_freecell[action.get_to() - TABLEAU_SIZE];
-    else                            card = m_array_homecell[action.get_to() - 12];
-    
+    Card card = action.get_card();
     if (action.get_from() <= 7 && m_array_pile_top[ action.get_from() ].is_card())
       delete_cycle(card);
     if (action.get_to() <= 7 && m_row_data.get_below(card).is_card()) add_cycle(card);
-
     assert(correct()); }
 
 void Position::unmake(const Action& action) noexcept {
     Position_base::unmake(action);
     
-    Card card;
-    if (action.get_from() <= 7) card = m_array_pile_top[ action.get_from() ];
-    else                        card = m_array_freecell[ action.get_from() - TABLEAU_SIZE ];
-
+    Card card = action.get_card();
     if (action.get_to() <= 7 && m_array_pile_top[ action.get_to() ].is_card())
       delete_cycle(card);
     if (action.get_from() <= 7 && m_row_data.get_below(card).is_card()) add_cycle(card);
-    
     assert(correct());
     assert(is_legal(action)); }

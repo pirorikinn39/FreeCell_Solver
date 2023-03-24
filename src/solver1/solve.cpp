@@ -1,3 +1,4 @@
+#include "../common/utility.hpp"
 #include "solve.hpp"
 
 int Solve::dfstt1(int th, int g_cost, Action* path, Solve::Entry_tt& entry_m_position) noexcept {
@@ -79,9 +80,5 @@ Solve::Solve(int game_id) noexcept : m_game_id(game_id), m_position(m_game_id) {
   }
   else {
     int min_f_cost = g_cost + th;
-    cout << ", " << min_f_cost << ",";
-    for (int i=0; i<min_f_cost; ++i)
-      cout << " " << m_answer[i].gen_SN();
-    cout << ", " << m_tt.size();
-  }
-}
+    cout << ", " << min_f_cost << ", " << gen_solution(game_id, m_answer, min_f_cost)
+	 << ", " << m_tt.size(); } }

@@ -60,12 +60,12 @@ class Bits {
     int lz = -1;
     u = bits >> 32; if (u) { lz += 32; bits = u; }
     u = bits >> 16; if (u) { lz += 16; bits = u; }
-    u = bits >> 8;  if (u) { lz +=  8; bits = u; }
-    u = bits >> 4;  if (u) { lz +=  4; bits = u; }
+    u = bits >>  8; if (u) { lz +=  8; bits = u; }
+    u = bits >>  4; if (u) { lz +=  4; bits = u; }
     
     assert(bits < 16U);
     lz += tbl[bits];
-    assert((12 <= lz) && (lz <= 63));
+    assert(12 <= lz && lz <= 63);
     return 63 - lz; }
 #endif
 
@@ -73,6 +73,7 @@ public:
   constexpr Bits() noexcept : m_bits(0ULL) {}
   Bits(int id) noexcept : m_bits(Bits::table.bits[id]) {}
   Bits(const Card& card) noexcept : m_bits(Bits::table.bits[card.get_id()]) {}
+  constexpr Bits(const Bits& o) noexcept : m_bits(o.m_bits) {}
   
   static Bits next(const Card& card) noexcept { return next(card.get_id()); }
   static Bits placeable(const Card& card) noexcept { return placeable(card.get_id()); }
@@ -102,7 +103,7 @@ public:
   
   int popu() const noexcept { assert(ok()); return count_popu(); }
   bool is_set_bit(int id) const noexcept {
-    assert(ok() && (0 <= id) && (id <= 51));
+    assert(ok() && 0 <= id && id <= 51);
     return m_bits & Bits::table.bits[id]; }
   bool is_set_bit(const Card& card) const noexcept {
     return is_set_bit(card.get_id()); }

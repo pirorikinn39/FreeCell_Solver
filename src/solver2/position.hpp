@@ -125,25 +125,20 @@ public:
     bool correct_Action(const Position::Action_for_h&) const noexcept;
     uint64_t get_zobrist_key_for_h() const noexcept {
         assert(correct_for_h());
-        return m_zobrist_key;
-    };
+        return m_zobrist_key; }
     int get_ncard_deadlocked() const noexcept {
         assert(correct_for_h());
-        return m_ncard_deadlocked;
-    };
+        return m_ncard_deadlocked; }
     int ncard_rest_for_h() const noexcept {
         assert(correct_for_h());
-        return m_ncard_freecell + m_ncard_tableau;
-    };
+        return m_ncard_freecell + m_ncard_tableau; }
     int obtain_lower_h_cost(Card*) noexcept;
     int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
         assert(correct_for_h());
-        return m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()];  
-    };
+        return m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()]; }
     uint64_t m_tt_size() const noexcept {
         assert(correct_for_h());
-        return m_tt.size();
-    };
+        return m_tt.size(); }
     int calc_h_cost() noexcept;
     int dfstt1(int, Action_for_h*, Position::Entry_tt&) noexcept;
     int move_to_homecell_next(const Card&, Action_for_h*) noexcept;
@@ -151,13 +146,12 @@ public:
     int move_auto(Position::Action_for_h*) noexcept;
     void back_to_parent(const Position::Action_for_h* history, int naction) noexcept {
         for (int i=1; i<=naction; ++i)
-            unmake(*(history - i));
-        assert(correct_for_h());
-    };
+            unmake2(*(history - i));
+        assert(correct_for_h()); }
     void make(const Action&) noexcept;
-    void make(const Position::Action_for_h& action) noexcept;
+    void make2(const Position::Action_for_h& action) noexcept;
     void unmake(const Action&) noexcept;
-    void unmake(const Position::Action_for_h& action) noexcept;
+    void unmake2(const Position::Action_for_h& action) noexcept;
 };
 
 #endif

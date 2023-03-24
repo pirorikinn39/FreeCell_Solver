@@ -11,11 +11,12 @@
 #define STR(x) #x
 #define E(l) " [internal error (line " STR(l) " in " __FILE__ ")]"
 
-#define MAX_ACTION_SIZE 40 // 34 seems sufficient.
-#define BAD_LOCATION    64
-#define HOMECELL_SIZE    4
-#define FREECELL_SIZE    4
-#define TABLEAU_SIZE     8
+#define MAX_ACTION_SIZE  40 // 34 seems sufficient.
+#define MAX_PATH_SIZE   255
+#define BAD_LOCATION     64
+#define HOMECELL_SIZE     4
+#define FREECELL_SIZE     4
+#define TABLEAU_SIZE      8
 
 union Position_row {
 #ifdef TEST_ZKEY
@@ -64,20 +65,24 @@ private:
 };
   
 class Action {
+  Card m_card;
   char m_from, m_to;
     
 public:
-  Action() noexcept : m_from(BAD_LOCATION) {};
-  Action(int from, int to) noexcept : m_from(from), m_to(to) {};
+  Action() noexcept : m_from(BAD_LOCATION) {}
+  Action(const Card& card, int from, int to) noexcept : m_card(card), m_from(from), m_to(to) {
+    assert(ok()); }
   bool ok() const noexcept {
-    if (m_from == m_to)  return false;
+    if (! m_card.is_card()) return false;
+    if (m_from == m_to) return false;
     if (12 <= m_to && m_to <= 15) return (0 <= m_from && m_from <= 11);
     if ( 8 <= m_to && m_to <= 11) return (0 <= m_from && m_from <=  7);
     if ( 0 <= m_to && m_to <=  7) return (0 <= m_from && m_from <= 11);
     return false; }
   string gen_SN() const noexcept;
-  int get_from() const noexcept { assert(ok()); return m_from; }
-  int get_to() const noexcept { assert(ok()); return m_to; }
+  Card get_card() const noexcept { return m_card; }
+  int get_from() const noexcept { return m_from; }
+  int get_to() const noexcept { return m_to; }
 };
 
 class Position_base {
@@ -97,7 +102,6 @@ protected:
   Bits m_array_bits_pile_card[TABLEAU_SIZE];
   Card m_array_pile_top[TABLEAU_SIZE];
   Card m_array_homecell[HOMECELL_SIZE];
-  Card m_array_freecell[FREECELL_SIZE];
   Bits m_bits_homecell;
   Bits m_bits_freecell;
   Bits m_bits_homecell_next;
@@ -115,11 +119,6 @@ protected:
     m_zobrist_key ^= table.get(card, m_row_data.get_below(card));
     m_row_data.set_below(card, below);
     m_zobrist_key ^= table.get(card, below); }
-  int find_freecell_empty() const noexcept {
-    int i;
-    for (i=0; i<FREECELL_SIZE; ++i)
-      if (! m_array_freecell[i]) break;
-        return i; }
   int find_pile_empty() const noexcept {
     int i;
     for (i=0; i<TABLEAU_SIZE; ++i)
@@ -144,4 +143,5 @@ public:
   const Position_row& get_row_data() const noexcept { return m_row_data; }
 };
 
+string gen_solution(int, const Action *, int) noexcept;
 #endif
