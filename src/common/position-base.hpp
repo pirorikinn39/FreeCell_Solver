@@ -79,7 +79,6 @@ public:
     if ( 8 <= m_to && m_to <= 11) return (0 <= m_from && m_from <=  7);
     if ( 0 <= m_to && m_to <=  7) return (0 <= m_from && m_from <= 11);
     return false; }
-  string gen_SN() const noexcept;
   Card get_card() const noexcept { return m_card; }
   int get_from() const noexcept { return m_from; }
   int get_to() const noexcept { return m_to; }
