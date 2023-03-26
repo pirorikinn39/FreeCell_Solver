@@ -106,13 +106,10 @@ public:
     int move_auto(Action*) noexcept;
     int move_auto2(Action*) noexcept;
     void back_to_parent(const Action* history, int naction) noexcept {
-        for (int i=1; i<=naction; ++i)
-            unmake2(*(history - i));
+        for (int i=1; i<=naction; ++i) unmake(*(history - i));
         assert(correct_for_h()); }
     void make(const Action&) noexcept;
-    void make2(const Action& action) noexcept;
     void unmake(const Action&) noexcept;
-    void unmake2(const Action& action) noexcept;
 };
 
 #endif

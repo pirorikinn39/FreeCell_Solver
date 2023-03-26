@@ -100,8 +100,7 @@ bool Position_base::is_legal(const Action& action) const noexcept {
     if (to <= 7) {
       if (! m_array_pile_top[to]) return true;
       return m_array_bits_pile_next[to].is_set_bit(card); }
-    if (to <= 11) return m_ncard_freecell < FREECELL_SIZE;
-
+    if (to <= 11) return true; //m_ncard_freecell < FREECELL_SIZE;
     if (to != card.suit() + 12) return false;
     return m_bits_homecell_next.is_set_bit(card); }
 
@@ -253,7 +252,7 @@ bool Position_base::ok() const noexcept {
     Bits array_bits_pile_card[TABLEAU_SIZE];
     unsigned char ncard[DECK_SIZE];
     Card array_homecell_above[HOMECELL_SIZE];
-    Card array_freecell_above[FREECELL_SIZE];
+    Card array_freecell_above[DECK_SIZE /* FREECELL_SIZE */];
     Card array_pile_above[TABLEAU_SIZE];
     Card array_card_above[DECK_SIZE];
     Card array_homecell[HOMECELL_SIZE];
@@ -272,7 +271,7 @@ bool Position_base::ok() const noexcept {
       if (! below) throw E(__LINE__);
       
       if (below == Card::freecell()) {
-	if (ncard_freecell >= FREECELL_SIZE) throw E(__LINE__);
+	// if (ncard_freecell >= FREECELL_SIZE) throw E(__LINE__);
 	array_freecell_above[ncard_freecell++] = Card(above); }
       else if (below == Card::homecell()) {
 	if (ncard_homecell >= HOMECELL_SIZE) throw E(__LINE__);
@@ -301,7 +300,7 @@ bool Position_base::ok() const noexcept {
       if (pile2 == TABLEAU_SIZE) throw E(__LINE__); }
     
     ncard_freecell = 0;
-    for (int freecell=0; freecell<FREECELL_SIZE; ++freecell) {
+    for (int freecell=0; freecell<DECK_SIZE/*FREECELL_SIZE*/; ++freecell) {
       int count = 0;
       for (Card above=array_freecell_above[freecell]; above;
 	   above=array_card_above[above.get_id()]) {
@@ -321,7 +320,7 @@ bool Position_base::ok() const noexcept {
       if (from >= 12) {
 	if (! m_bits_homecell.is_set_bit(id)) throw E(__LINE__);
 	if (Card::suit(id) != from - 12) throw E(__LINE__);
-	if (Card::rank(id) > m_array_homecell[from - 12].rank()) throw E(__LINE__); } // !=
+	if (Card::rank(id) > m_array_homecell[from - 12].rank()) throw E(__LINE__); }
       else if (from >= 8) {
 	if (! m_bits_freecell.is_set_bit(id)) throw E(__LINE__); }
       else {
