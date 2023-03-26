@@ -142,5 +142,5 @@ public:
   const Position_row& get_row_data() const noexcept { return m_row_data; }
 };
 
-string gen_solution(int, const Action *, int) noexcept;
+string gen_solution(int, const Action*, int) noexcept;
 #endif

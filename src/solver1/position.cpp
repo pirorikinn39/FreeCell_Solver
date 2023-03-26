@@ -385,24 +385,19 @@ int Position::dfs(int index, int size, int th) noexcept {
 }
 
 int Position::move_auto(Action* history) noexcept {
-    assert(correct());
-    int naction = 0;
-    Bits bits_from = m_bits_freecell | m_bits_pile_top;
-    Bits bits_possible = bits_from & m_bits_homecell_next;
+  int naction = 0;
+  Bits bits_from = m_bits_freecell | m_bits_pile_top;
+  Bits bits_possible = bits_from & m_bits_homecell_next;
 
-    for (Card card=bits_possible.pop(); card; card=bits_possible.pop()) {
-        if (card.rank() > 0) {
-            Bits bits_placeable_in_homecell = m_bits_homecell & Bits::placeable(card);
-            if (bits_placeable_in_homecell.popu() < 2) 
-                continue; 
-        }
-        history[naction] = Action(card, m_array_location[card.get_id()], card.suit() + 12);
-        make(history[naction++]);
-        bits_from = m_bits_freecell | m_bits_pile_top;
-        bits_possible = bits_from & m_bits_homecell_next;
-    }
-    return naction;
-}
+  for (Card card=bits_possible.pop(); card; card=bits_possible.pop()) {
+    if (card.rank() > 0) {
+      Bits bits_placeable_in_homecell = m_bits_homecell & Bits::placeable(card);
+      if (bits_placeable_in_homecell.popu() < 2) continue; }
+    history[naction] = Action(card, m_array_location[card.get_id()], card.suit() + 12);
+    make(history[naction++]);
+    bits_from = m_bits_freecell | m_bits_pile_top;
+    bits_possible = bits_from & m_bits_homecell_next; }
+  return naction; }
 
 void Position::make(const Action& action) noexcept {
     assert(is_legal(action));

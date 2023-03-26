@@ -78,36 +78,25 @@ private:
   unordered_map<uint64_t, Position::Entry_tt> m_tt;
 
   bool correct() const noexcept;
-  bool correct_for_h() const;
   void initialize() noexcept;
+  void back_to_parent(const Action* history, int naction) noexcept {
+    for (int i=1; i<=naction; ++i) unmake(*(history - i)); }
 
 public:
   explicit Position(int) noexcept;
     bool correct_Action(const Action&) const noexcept;
-    uint64_t get_zobrist_key_for_h() const noexcept {
-        assert(correct_for_h());
-        return m_zobrist_key; }
-    int get_ncard_deadlocked() const noexcept {
-        assert(correct_for_h());
-        return m_ncard_deadlocked; }
-    int ncard_rest_for_h() const noexcept {
-        assert(correct_for_h());
-        return m_ncard_freecell + m_ncard_tableau; }
+    uint64_t get_zobrist_key_for_h() const noexcept { return m_zobrist_key; }
+    int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
+    int ncard_rest_for_h() const noexcept { return m_ncard_freecell + m_ncard_tableau; }
     int obtain_lower_h_cost(Card*) noexcept;
     int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
-        assert(correct_for_h());
         return m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()]; }
-    uint64_t m_tt_size() const noexcept {
-        assert(correct_for_h());
-        return m_tt.size(); }
+    uint64_t m_tt_size() const noexcept { return m_tt.size(); }
     int calc_h_cost() noexcept;
     int dfstt1(int, Action*, Entry_tt&) noexcept;
     int move_to_homecell_next(const Card&, Action*) noexcept;
     int move_auto(Action*) noexcept;
-    int move_auto2(Action*) noexcept;
-    void back_to_parent(const Action* history, int naction) noexcept {
-        for (int i=1; i<=naction; ++i) unmake(*(history - i));
-        assert(correct_for_h()); }
+    int move_auto_52f(Action*) noexcept;
     void make(const Action&) noexcept;
     void unmake(const Action&) noexcept;
 };

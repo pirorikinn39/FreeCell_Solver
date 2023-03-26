@@ -73,243 +73,6 @@ bool Position::correct() const noexcept {
     return false; }
   return true; }
 
-bool Position::correct_for_h() const {
-    try { 
-        Bits bits_column_top, bits_homecell, bits_freecell, bits_deadlocked;
-        unsigned char ncard1[DECK_SIZE], ncard2[DECK_SIZE];
-        Card array_homecell_above[HOMECELL_SIZE];
-        Card array_freecell_above[DECK_SIZE];
-        Card array_field_above[TABLEAU_SIZE];
-        Card array_card_above[DECK_SIZE];
-        Card array_homecell[HOMECELL_SIZE];
-        unsigned char array_ncard_not_deadlocked_below_and[DECK_SIZE];
-        int ncard_homecell = 0;
-        int ncard_tableau = 0;
-        int ncard_freecell = 0;
-        int ncard_deadlocked = 0;
-        int ncolumn = 0;
-        uint64_t zobrist_key = 0ULL;
-
-        fill_n(ncard1, DECK_SIZE, 0U);
-        fill_n(ncard2, DECK_SIZE, 0U);
-        fill_n(array_homecell, HOMECELL_SIZE, Card());
-        fill_n(array_homecell_above, HOMECELL_SIZE, Card());
-        fill_n(array_freecell_above, DECK_SIZE, Card());
-        fill_n(array_field_above, TABLEAU_SIZE, Card());
-        fill_n(array_card_above, DECK_SIZE, Card());
-        fill_n(array_ncard_not_deadlocked_below_and, DECK_SIZE, 0U);
-
-        for (int id=0; id<DECK_SIZE; ++id)
-            zobrist_key ^= Position::table.get(Card(id), m_row_data.get_below(id));
-        if (zobrist_key != m_zobrist_key) 
-            throw E(__LINE__);
-    
-        for (int id=0; id<DECK_SIZE; ++id) {
-            Card below = m_row_data.get_below(id);
-            if (! below) 
-                throw E(__LINE__);
-
-            ncard1[id] += 1U;
-            if (below == Card::freecell()) {
-                if (ncard_freecell >= DECK_SIZE) 
-                    throw E(__LINE__);
-                array_freecell_above[ncard_freecell++] = Card(id); 
-            }
-            else if (below == Card::homecell()) {
-                if (ncard_homecell >= HOMECELL_SIZE) 
-                    throw E(__LINE__);
-                array_homecell_above[ncard_homecell++] = Card(id); 
-            }
-            else if (below == Card::field()) {
-                if (ncolumn >= TABLEAU_SIZE) 
-                    throw E(__LINE__);
-                array_field_above[ncolumn++] = Card(id); 
-            }
-            else {
-                if (! below.is_card()) 
-                    throw E(__LINE__);
-                array_card_above[below.get_id()] = Card(id); 
-            } 
-        }
-        if (ncard_freecell != m_ncard_freecell) 
-            throw E(__LINE__);
-
-        ncard_freecell = 0;
-        for (int freecell=0; freecell<DECK_SIZE; ++freecell) {
-            int count = 0;
-            for (Card above=array_freecell_above[freecell]; above; above=array_card_above[above.get_id()]) {
-                if (! above.is_card()) 
-                    throw E(__LINE__);
-                ncard2[above.get_id()] += 1U;
-                count += 1;
-                ncard_freecell += 1;
-                if (bits_freecell.is_set_bit(above)) 
-                    throw E(__LINE__);
-                bits_freecell.set_bit(above); 
-            }
-            if (count > 1) 
-                throw E(__LINE__); 
-        }
-        if (bits_freecell != m_bits_freecell)
-            throw E(__LINE__);
-        if (ncard_freecell != m_ncard_freecell) 
-            throw E(__LINE__);
-
-        Bits bits_all_cards;
-        for (int id=0; id<DECK_SIZE; ++id) {
-            int from = m_array_location[id];
-            if (from >= 16)
-                throw E(__LINE__);
-            else if (from >= 12) {
-                if (! m_bits_homecell.is_set_bit(id))
-                    throw E(__LINE__);
-                if (Card::suit(id) != from - 12)
-                    throw E(__LINE__);
-                if (Card::rank(id) > m_array_homecell[from - 12].rank())
-                    throw E(__LINE__);
-            }
-            else if (from >= 8) {
-                if (! m_bits_freecell.is_set_bit(id))
-                    throw E(__LINE__);
-            }
-            else {
-                if (from < 0)
-                    throw E(__LINE__);
-                bool is_contained = false;
-                for (Card below=m_array_pile_top[from]; below.is_card(); below=m_row_data.get_below(below))
-                    if (below == id)
-                        is_contained = true;
-                if (! is_contained)
-                    throw E(__LINE__);
-            }
-            bits_all_cards.set_bit(id); 
-        }
-        if (bits_all_cards != Bits::full()) 
-            throw E(__LINE__);
-
-        for (int homecell=0; homecell<HOMECELL_SIZE; ++homecell) {
-            for (Card above=array_homecell_above[homecell]; above; above=array_card_above[above.get_id()]) {
-                if (! above.is_card()) 
-                    throw E(__LINE__);
-                ncard2[above.get_id()] += 1U;
-                if (bits_homecell.is_set_bit(above)) 
-                    throw E(__LINE__);
-                array_homecell[above.suit()] = above;
-                bits_homecell.set_bit(above); 
-            }
-        }
-        if (bits_homecell != m_bits_homecell) 
-            throw E(__LINE__);
-        for (int suit=0; suit<N_SUIT; ++suit)
-            if (array_homecell[suit] != m_array_homecell[suit]) 
-                throw E(__LINE__);
-
-        bits_column_top.clear();
-        for (int column=0; column<ncolumn; ++column) {
-            Card top;
-            for (Card above=array_field_above[column]; above; above=array_card_above[above.get_id()]) {
-                if (! above.is_card()) 
-                    throw E(__LINE__);
-                ncard2[above.get_id()] += 1U;
-                ncard_tableau += 1;
-                top = above; 
-            }
-            if (bits_column_top.is_set_bit(top)) 
-                throw E(__LINE__);
-            bits_column_top.set_bit(top); 
-        }
-        if (bits_column_top != m_bits_pile_top) 
-            throw E(__LINE__);
-        if (ncard_tableau != m_ncard_tableau) 
-            throw E(__LINE__);
-
-        for (int id=0; id<DECK_SIZE; ++id) {
-            if (ncard1[id] != ncard2[id])    
-                throw E(__LINE__);                    
-            if (ncard1[id] > 1) 
-                throw E(__LINE__); 
-        }
-
-        bits_column_top.clear();
-        for (int column=0; column<TABLEAU_SIZE; ++column) {
-            Card column_top = m_array_pile_top[column];
-            if (! column_top) {
-                if (m_array_bits_pile_next[column]) 
-                    throw E(__LINE__);
-                continue; 
-            }
-            if (! column_top.is_card()) 
-                throw E(__LINE__);
-            if (bits_column_top.is_set_bit(column_top)) 
-                throw E(__LINE__);
-            if (Bits::placeable(column_top) != m_array_bits_pile_next[column])
-                throw E(__LINE__);
-            bits_column_top.set_bit(column_top); 
-        }
-        if (bits_column_top != m_bits_pile_top)
-            throw E(__LINE__);
-
-        Bits bits_homecell_next;
-        for (int suit=0; suit<N_SUIT; ++suit) {
-            Card card = array_homecell[suit];
-            if (! card) { 
-                bits_homecell_next.set_bit(Card(suit, 0));
-            }
-            else {
-                if (! card.is_card())
-                    throw E(__LINE__);
-                if (card.rank() < 12)
-                    bits_homecell_next.set_bit(card.next()); 
-            }
-        }
-        if (bits_homecell_next != m_bits_homecell_next) 
-            throw E(__LINE__);
-
-        bits_deadlocked.clear();
-        for (int id=0; id<DECK_SIZE; ++id) {
-            if (m_array_location[id] >= 8)
-                continue;
-            Bits bits_deadlock = Bits::same_suit_small_rank(id);
-            for (Card below=m_row_data.get_below(id); below.is_card(); below=m_row_data.get_below(below)) {
-                if (bits_deadlock.is_set_bit(below)) {
-                    bits_deadlocked.set_bit(id);
-                    ncard_deadlocked += 1;
-                    break;
-                }
-            }
-        }
-        if (bits_deadlocked != m_bits_deadlocked)
-            throw E(__LINE__);
-        if (ncard_deadlocked != m_ncard_deadlocked)
-            throw E(__LINE__);
-
-        for (int id=0; id<DECK_SIZE; ++id) {
-            if (m_array_location[id] >= 8)
-                continue;
-            for (Card below=Card(id); below.is_card(); below=m_row_data.get_below(below)) {
-                bool is_deadlocked = false;
-                Bits bits_deadlock = Bits::same_suit_small_rank(below);
-                for (Card below_below=m_row_data.get_below(below); below_below.is_card(); below_below=m_row_data.get_below(below_below)) {
-                    if (bits_deadlock.is_set_bit(below_below)) {
-                        is_deadlocked = true;
-                        break;
-                    }
-                }
-                if (! is_deadlocked)
-                    array_ncard_not_deadlocked_below_and[id] += 1U;
-            }
-        }
-        for (int id=0; id<DECK_SIZE; ++id)
-            if (array_ncard_not_deadlocked_below_and[id] != m_array_ncard_not_deadlocked_below_and[id])
-                throw E(__LINE__);
-    }
-    catch (const char *cstr) {
-        cerr << cstr << endl;
-        return false; 
-    }
-    return true;
-}
-
 void Position::initialize() noexcept {
     m_ncard_deadlocked = 0;
     fill_n(m_array_ncard_not_deadlocked_below_and, DECK_SIZE, 0U);
@@ -407,7 +170,6 @@ bool Position::correct_Action(const Action& action) const noexcept {
 int Position::obtain_lower_h_cost(Card* candidate_homecell_next) noexcept {
     if (m_ncard_freecell + m_ncard_tableau == 0)
         return 0;
-    assert(correct_for_h());
     assert(m_bits_homecell_next);
     pair<int, Card> a[4];
     int n1 = 0, n2 = 0;
@@ -437,10 +199,8 @@ int Position::obtain_lower_h_cost(Card* candidate_homecell_next) noexcept {
 }
 
 int Position::calc_h_cost() noexcept {
-    assert(correct_for_h());
-
     Action path[MAX_H_COST];
-    int naction = move_auto2(path);
+    int naction = move_auto_52f(path);
     int h_cost = naction;
     int th;
 
@@ -472,7 +232,6 @@ int Position::calc_h_cost() noexcept {
 
     h_cost += th;
     back_to_parent(path + naction, naction);
-    assert(correct_for_h());
     return h_cost;
 }
 
@@ -499,7 +258,7 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
         }
 
         int cost = move_to_homecell_next(next, path);
-        cost += move_auto2(path + cost);
+        cost += move_auto_52f(path + cost);
 
         auto it = m_tt.find(m_zobrist_key);
         if (it != m_tt.end()) {
@@ -534,7 +293,6 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
         }
 
         back_to_parent(path + cost, cost);
-        assert(correct_for_h());
 
         if (m_is_solved) {
             assert(th == new_th);
@@ -559,31 +317,26 @@ int Position::move_to_homecell_next(const Card& next, Action* history) noexcept 
         make(history[naction++]); }
     history[naction] = Action(next, column, next.suit() + 12);
     make(history[naction++]);
-    assert(correct_for_h());
     return naction;
 }
 
 int Position::move_auto(Action* history) noexcept {
-    assert(correct());
-    int naction = 0;
-    Bits bits_from = m_bits_freecell | m_bits_pile_top;
-    Bits bits_possible = bits_from & m_bits_homecell_next;
+  int naction = 0;
+  Bits bits_from = m_bits_freecell | m_bits_pile_top;
+  Bits bits_possible = bits_from & m_bits_homecell_next;
+  
+  for (Card card=bits_possible.pop(); card; card=bits_possible.pop()) {
+    if (card.rank() > 0) {
+      Bits bits_placeable_in_homecell = m_bits_homecell & Bits::placeable(card);
+      if (bits_placeable_in_homecell.popu() < 2) continue; }
+    history[naction] = Action(card, m_array_location[card.get_id()], card.suit() + 12);
+    make(history[naction++]);
+    bits_from = m_bits_freecell | m_bits_pile_top;
+    bits_possible = bits_from & m_bits_homecell_next; }
+  
+    return naction; }
 
-    for (Card card=bits_possible.pop(); card; card=bits_possible.pop()) {
-        if (card.rank() > 0) {
-            Bits bits_placeable_in_homecell = m_bits_homecell & Bits::placeable(card);
-            if (bits_placeable_in_homecell.popu() < 2) 
-                continue; 
-        }
-        history[naction] = Action(card, m_array_location[card.get_id()], card.suit() + 12);
-        make(history[naction++]);
-        bits_from = m_bits_freecell | m_bits_pile_top;
-        bits_possible = bits_from & m_bits_homecell_next;
-    }
-    return naction;
-}
-
-int Position::move_auto2(Action* history) noexcept {
+int Position::move_auto_52f(Action* history) noexcept {
     Card card;
     int naction = 0;
     Bits bits_from = m_bits_freecell | m_bits_pile_top;
@@ -606,7 +359,6 @@ int Position::move_auto2(Action* history) noexcept {
         bits_deadlocked_top = m_bits_pile_top & m_bits_deadlocked;
 
     }
-    assert(correct_for_h());
     return naction;
 }
 
