@@ -70,45 +70,6 @@ private:
 #endif      
     };
 
-public:
-
-    class Action_for_h {
-    private:
-        Card m_card;
-        unsigned char m_from, m_to;
-
-        Action_for_h(const Card& card, int from, int to) noexcept : m_card(card), m_from(from), m_to(to) {};
-
-    public:
-      Action_for_h() noexcept : m_from(BAD_LOCATION) {};
-        bool correct() const noexcept {
-            if (! (m_card.is_card()))
-                return false;
-            if (! ((m_card.get_id() >= 0) && (m_card.get_id() <= 51)))
-                return false;
-            if (m_from == m_to) 
-                return false;
-            if ((m_from >= 0) && (m_from <= 7))
-                return (m_to == 8) || ((m_to >= 12) && (m_to <= 15));
-            if ((m_from >= 8) && (m_from <= 11))
-                return (m_to >= 12) && (m_to <= 15);
-            return false; 
-        };
-        const Card& get_card() const noexcept {
-            assert(correct());
-            return m_card;
-        };
-        int get_from() const noexcept {
-            assert(correct());
-            return m_from;
-        };
-        int get_to() const noexcept {
-            assert(correct());
-            return m_to;
-        };
-        friend Position;
-    };
-
 private:
   Bits m_bits_deadlocked;
   unsigned char m_ncard_deadlocked;
@@ -122,7 +83,7 @@ private:
 
 public:
   explicit Position(int) noexcept;
-    bool correct_Action(const Position::Action_for_h&) const noexcept;
+    bool correct_Action(const Action&) const noexcept;
     uint64_t get_zobrist_key_for_h() const noexcept {
         assert(correct_for_h());
         return m_zobrist_key; }
@@ -140,18 +101,18 @@ public:
         assert(correct_for_h());
         return m_tt.size(); }
     int calc_h_cost() noexcept;
-    int dfstt1(int, Action_for_h*, Position::Entry_tt&) noexcept;
-    int move_to_homecell_next(const Card&, Action_for_h*) noexcept;
+    int dfstt1(int, Action*, Entry_tt&) noexcept;
+    int move_to_homecell_next(const Card&, Action*) noexcept;
     int move_auto(Action*) noexcept;
-    int move_auto(Position::Action_for_h*) noexcept;
-    void back_to_parent(const Position::Action_for_h* history, int naction) noexcept {
+    int move_auto2(Action*) noexcept;
+    void back_to_parent(const Action* history, int naction) noexcept {
         for (int i=1; i<=naction; ++i)
             unmake2(*(history - i));
         assert(correct_for_h()); }
     void make(const Action&) noexcept;
-    void make2(const Position::Action_for_h& action) noexcept;
+    void make2(const Action& action) noexcept;
     void unmake(const Action&) noexcept;
-    void unmake2(const Position::Action_for_h& action) noexcept;
+    void unmake2(const Action& action) noexcept;
 };
 
 #endif

@@ -346,8 +346,8 @@ Position::Position(int seed) noexcept : Position_base::Position_base(seed) {
     assert(correct());
 }
 
-bool Position::correct_Action(const Position::Action_for_h& action) const noexcept {
-    if (! action.correct()) 
+bool Position::correct_Action(const Action& action) const noexcept {
+    if (! action.ok()) 
         return false;
 
     const Card& card = action.get_card();
@@ -439,8 +439,8 @@ int Position::obtain_lower_h_cost(Card* candidate_homecell_next) noexcept {
 int Position::calc_h_cost() noexcept {
     assert(correct_for_h());
 
-    Position::Action_for_h path[MAX_H_COST];
-    int naction = move_auto(path);
+    Action path[MAX_H_COST];
+    int naction = move_auto2(path);
     int h_cost = naction;
     int th;
 
@@ -476,7 +476,7 @@ int Position::calc_h_cost() noexcept {
     return h_cost;
 }
 
-int Position::dfstt1(int th, Position::Action_for_h* path, Position::Entry_tt& entry_parent) noexcept {
+int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noexcept {
   if (ncard_rest() == 0) {
         m_is_solved = true;
         entry_parent.set_is_decided(true);
@@ -499,7 +499,7 @@ int Position::dfstt1(int th, Position::Action_for_h* path, Position::Entry_tt& e
         }
 
         int cost = move_to_homecell_next(next, path);
-        cost += move_auto(path + cost);
+        cost += move_auto2(path + cost);
 
         auto it = m_tt.find(m_zobrist_key);
         if (it != m_tt.end()) {
@@ -548,16 +548,16 @@ int Position::dfstt1(int th, Position::Action_for_h* path, Position::Entry_tt& e
     return new_th;
 }  
 
-int Position::move_to_homecell_next(const Card& next, Position::Action_for_h* history) noexcept {
+int Position::move_to_homecell_next(const Card& next, Action* history) noexcept {
     assert(m_bits_homecell_next.is_set_bit(next));
     int naction = 0;
     
     unsigned char column = m_array_location[next.get_id()];
     for (Card card=m_array_pile_top[column]; card!=next; card=m_array_pile_top[column]) {
         assert(card.is_card());
-        history[naction] = Position::Action_for_h(card, column, 8);
+        history[naction] = Action(card, column, 8);
         make2(history[naction++]); }
-    history[naction] = Position::Action_for_h(next, column, next.suit() + 12);
+    history[naction] = Action(next, column, next.suit() + 12);
     make2(history[naction++]);
     assert(correct_for_h());
     return naction;
@@ -583,7 +583,7 @@ int Position::move_auto(Action* history) noexcept {
     return naction;
 }
 
-int Position::move_auto(Position::Action_for_h* history) noexcept {
+int Position::move_auto2(Action* history) noexcept {
     Card card;
     int naction = 0;
     Bits bits_from = m_bits_freecell | m_bits_pile_top;
@@ -593,13 +593,13 @@ int Position::move_auto(Position::Action_for_h* history) noexcept {
     while (bits_possible || bits_deadlocked_top) {
         if (bits_possible) {
             card = bits_possible.pop();
-            history[naction] = Position::Action_for_h(card, m_array_location[card.get_id()], card.suit() + 12);
-            make2(history[naction++]); 
+            history[naction] = Action(card, m_array_location[card.get_id()], card.suit() + 12);
+            make2(history[naction++]);
         }
         if (bits_deadlocked_top) {
             card = bits_deadlocked_top.pop();
-            history[naction] = Position::Action_for_h(card, m_array_location[card.get_id()], 8);
-            make2(history[naction++]); 
+            history[naction] = Action(card, m_array_location[card.get_id()], 8);
+            make2(history[naction++]);
         }
         bits_from = m_bits_freecell | m_bits_pile_top;
         bits_possible = bits_from & m_bits_homecell_next;
@@ -633,8 +633,8 @@ void Position::make(const Action& action) noexcept {
   Position_base::make(action);
   assert(correct()); }
 
-void Position::make2(const Position::Action_for_h& action) noexcept {
-    assert(action.correct());
+void Position::make2(const Action& action) noexcept {
+    assert(action.ok());
     assert(correct_Action(action));
     Card card = action.get_card();
     int from = action.get_from();
@@ -731,8 +731,8 @@ void Position::unmake(const Action& action) noexcept {
   assert(correct());
   assert(is_legal(action)); }
 
-void Position::unmake2(const Position::Action_for_h& action) noexcept {
-    assert(action.correct());
+void Position::unmake2(const Action& action) noexcept {
+    assert(action.ok());
     Card card = action.get_card();
     int from = action.get_from();
     int to = action.get_to();
