@@ -68,7 +68,7 @@ bool Position::correct() const noexcept {
     
     for (int id=0; id<DECK_SIZE; ++id)
       if (array_ncard_not_deadlocked_below_and[id]
-	  != m_array_ncard_not_deadlocked_below_and[id]) throw E(__LINE__); }
+	  != m_array_nbelow_not_deadlocked[id]) throw E(__LINE__); }
   catch (const char *cstr) {
     cerr << cstr << endl;
     return false; }
@@ -76,19 +76,19 @@ bool Position::correct() const noexcept {
 
 void Position::initialize() noexcept {
     m_ncard_deadlocked = 0;
-    fill_n(m_array_ncard_not_deadlocked_below_and, DECK_SIZE, 0U);
+    fill_n(m_array_nbelow_not_deadlocked, DECK_SIZE, 0U);
     m_bits_deadlocked.clear();
     for (int id=0; id<DECK_SIZE; ++id) {
         if (m_array_location[id] >= 8)
             continue;
-        m_array_ncard_not_deadlocked_below_and[id] = 1U;
+        m_array_nbelow_not_deadlocked[id] = 1U;
         Bits bits_deadlock = Bits::same_suit_small_rank(id);
 
         for (Card below=m_row_data.get_below(id); below.is_card(); below=m_row_data.get_below(below)) {
             if (bits_deadlock.is_set_bit(below)) {
                 m_bits_deadlocked.set_bit(id);
                 ++m_ncard_deadlocked;
-                m_array_ncard_not_deadlocked_below_and[id] = 0U;
+                m_array_nbelow_not_deadlocked[id] = 0U;
                 break;
             }
         }
@@ -101,7 +101,7 @@ void Position::initialize() noexcept {
         for (Card below=m_array_pile_top[column]; below.is_card(); below=m_row_data.get_below(below))
             stack[nstack++] = below;
         for (int h=nstack-2; h>=0; --h)
-            m_array_ncard_not_deadlocked_below_and[stack[h].get_id()] += m_array_ncard_not_deadlocked_below_and[stack[h + 1].get_id()];
+            m_array_nbelow_not_deadlocked[stack[h].get_id()] += m_array_nbelow_not_deadlocked[stack[h + 1].get_id()];
     }
 }
 
@@ -172,19 +172,15 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   assert(candidate_homecell_next);
   if (ncard_rest() == 0) return 0; // delete
 
-  assert(m_bits_homecell & Bits::not_kings());
   Bits bits_homecell_next = m_bits_homecell_next;
   pair<int, Card> a[5], tmp;
   int n = 0;
   a[0].first = INT_MAX;
   for (Card next = bits_homecell_next.pop(); next; next = bits_homecell_next.pop()) {
-    // if (next.rank() == 12) continue; // evaluate
-    
     int pile = m_array_location[next.get_id()];
     assert(m_array_pile_top[pile] != next);
-    int v = m_array_ncard_not_deadlocked_below_and[m_array_pile_top[pile].get_id()]
-      - m_array_ncard_not_deadlocked_below_and[next.get_id()];
-    v = v*16 + next.rank(); // evaluate
+    int v = m_array_nbelow_not_deadlocked[m_array_pile_top[pile].get_id()]
+      - m_array_nbelow_not_deadlocked[next.get_id()];
     
     // sort by v and delete duplicates in terms of pile.
     int i;
@@ -201,7 +197,7 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   for (int i=0; i<n; ++i) candidate_homecell_next[i] = a[i].second;
   if (n < HOMECELL_SIZE) candidate_homecell_next[n] = Card();
   
-  return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first / 16; }
+  return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first; }
 
 int Position::calc_h_cost() noexcept {
     Action path[MAX_H_COST];
@@ -370,7 +366,7 @@ int Position::move_auto_52f(Action* history) noexcept {
 void Position::make(const Action& action) noexcept {
   Card card = action.get_card();
   if (action.get_from() <= 7) {
-    m_array_ncard_not_deadlocked_below_and[card.get_id()] = 0U;
+    m_array_nbelow_not_deadlocked[card.get_id()] = 0U;
     if (m_bits_deadlocked.is_set_bit(card)) {
       m_bits_deadlocked.clear_bit(card);
       m_ncard_deadlocked -= 1; } }
@@ -379,13 +375,13 @@ void Position::make(const Action& action) noexcept {
     int pile = action.get_to();
     Card top = m_array_pile_top[pile];
     if (top.is_card())
-      m_array_ncard_not_deadlocked_below_and[card.get_id()]
-	= m_array_ncard_not_deadlocked_below_and[top.get_id()];
+      m_array_nbelow_not_deadlocked[card.get_id()]
+	= m_array_nbelow_not_deadlocked[top.get_id()];
     
     if (m_array_bits_pile_card[pile] & Bits::same_suit_small_rank(card)) {
       m_bits_deadlocked.set_bit(card);
       m_ncard_deadlocked += 1; }
-    else m_array_ncard_not_deadlocked_below_and[card.get_id()] += 1U; }
+    else m_array_nbelow_not_deadlocked[card.get_id()] += 1U; }
   
   Position_base::make(action);
   assert(correct()); }
@@ -395,7 +391,7 @@ void Position::unmake(const Action& action) noexcept {
 
   Card card = action.get_card();
   if (action.get_to() <= 7) {
-    m_array_ncard_not_deadlocked_below_and[card.get_id()] = 0U;
+    m_array_nbelow_not_deadlocked[card.get_id()] = 0U;
     if (m_bits_deadlocked.is_set_bit(card)) {
       m_bits_deadlocked.clear_bit(card);
       m_ncard_deadlocked -= 1; } }
@@ -405,13 +401,13 @@ void Position::unmake(const Action& action) noexcept {
     Card below = m_array_pile_top[column];
     
     if (below.is_card())
-      m_array_ncard_not_deadlocked_below_and[card.get_id()]
-	= m_array_ncard_not_deadlocked_below_and[below.get_id()];
+      m_array_nbelow_not_deadlocked[card.get_id()]
+	= m_array_nbelow_not_deadlocked[below.get_id()];
     
     if (m_array_bits_pile_card[column] & Bits::same_suit_small_rank(card)) {
       m_bits_deadlocked.set_bit(card);
       m_ncard_deadlocked += 1; }
-    else m_array_ncard_not_deadlocked_below_and[card.get_id()] += 1U; }
+    else m_array_nbelow_not_deadlocked[card.get_id()] += 1U; }
 
   Position_base::unmake(action);
   assert(correct());

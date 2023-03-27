@@ -73,7 +73,7 @@ private:
 private:
   Bits m_bits_deadlocked;
   unsigned char m_ncard_deadlocked;
-  unsigned char m_array_ncard_not_deadlocked_below_and[DECK_SIZE]; // delete _and
+  unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE]; // delete _and
   bool m_is_solved;
   unordered_map<uint64_t, Position::Entry_tt> m_tt;
 
@@ -90,7 +90,7 @@ public:
     int ncard_rest_for_h() const noexcept { return m_ncard_freecell + m_ncard_tableau; }
     int calc_h_cost_52f(Card*) noexcept;
     int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
-        return m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()]; }
+        return m_array_nbelow_not_deadlocked[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_nbelow_not_deadlocked[card.get_id()]; }
     uint64_t m_tt_size() const noexcept { return m_tt.size(); }
     int calc_h_cost() noexcept;
     int dfstt1(int, Action*, Entry_tt&) noexcept;
