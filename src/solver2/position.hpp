@@ -24,9 +24,9 @@ class Position : public Position_base {
 private:
     class Entry_tt {
     private:
-        unsigned char m_h_cost;
-        bool m_is_decided;
-        Card m_candidate_homecell_next[HOMECELL_SIZE];
+      unsigned char m_h_cost;
+      bool m_is_decided; // delete
+      Card m_candidate_homecell_next[HOMECELL_SIZE]; 
 #ifdef TEST_ZKEY
       Position_row m_row_data;
 #endif
@@ -64,7 +64,7 @@ private:
             return m_candidate_homecell_next;
         };
 #ifdef TEST_ZKEY
-        bool identify(const Position& position) const noexcept {
+      bool identify(const Position& position) const noexcept { // delete
             assert(correct());
             return m_row_data == position.get_row_data(); }
 #endif      
@@ -73,7 +73,7 @@ private:
 private:
   Bits m_bits_deadlocked;
   unsigned char m_ncard_deadlocked;
-  unsigned char m_array_ncard_not_deadlocked_below_and[DECK_SIZE];
+  unsigned char m_array_ncard_not_deadlocked_below_and[DECK_SIZE]; // delete _and
   bool m_is_solved;
   unordered_map<uint64_t, Position::Entry_tt> m_tt;
 
@@ -88,7 +88,7 @@ public:
     uint64_t get_zobrist_key_for_h() const noexcept { return m_zobrist_key; }
     int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
     int ncard_rest_for_h() const noexcept { return m_ncard_freecell + m_ncard_tableau; }
-    int obtain_lower_h_cost(Card*) noexcept;
+    int calc_h_cost_52f(Card*) noexcept;
     int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
         return m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[card.get_id()]; }
     uint64_t m_tt_size() const noexcept { return m_tt.size(); }

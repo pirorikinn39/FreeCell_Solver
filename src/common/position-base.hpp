@@ -59,7 +59,7 @@ union Position_row {
 
 private:
 #ifdef TEST_ZKEY
-  uint64_t m_array_u64[7];
+  uint64_t m_array_u64[7]; // try uint32_t
 #endif
   int8_t m_array_i8[56];
 };

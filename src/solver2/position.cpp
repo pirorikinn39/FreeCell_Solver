@@ -1,3 +1,4 @@
+#include <climits>
 #include "position.hpp"
 
 bool Position::Entry_tt::correct() const {
@@ -167,36 +168,40 @@ bool Position::correct_Action(const Action& action) const noexcept {
     return true;
 } 
 
-int Position::obtain_lower_h_cost(Card* candidate_homecell_next) noexcept {
-    if (m_ncard_freecell + m_ncard_tableau == 0)
-        return 0;
-    assert(m_bits_homecell_next);
-    pair<int, Card> a[4];
-    int n1 = 0, n2 = 0;
-    int c = 0;
-    Card next;
-    constexpr unsigned char tbl[TABLEAU_SIZE] = {1U << 0, 1U << 1, 1U << 2, 1U << 3, 1U << 4, 1U << 5, 1U << 6, 1U << 7};
+int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
+  assert(candidate_homecell_next);
+  if (ncard_rest() == 0) return 0; // delete
+
+  assert(m_bits_homecell & Bits::not_kings());
+  Bits bits_homecell_next = m_bits_homecell_next;
+  pair<int, Card> a[5], tmp;
+  int n = 0;
+  a[0].first = INT_MAX;
+  for (Card next = bits_homecell_next.pop(); next; next = bits_homecell_next.pop()) {
+    // if (next.rank() == 12) continue; // evaluate
     
-    for (int suit=0; suit<N_SUIT; ++suit) {
-        if (m_array_homecell[suit].is_card())
-            next = m_array_homecell[suit].next();
-        else
-            next = Card(suit, 0);
-        if (! next.is_card())
-            continue;
-        a[n1++] = {m_array_ncard_not_deadlocked_below_and[m_array_pile_top[m_array_location[next.get_id()]].get_id()] - m_array_ncard_not_deadlocked_below_and[next.get_id()], next};
-    }
-    sort(a, a + n1, [](const pair<int, Card> &a, const pair<int, Card> &b){ return a.first < b.first; });
-    for (int i=0; i<n1; ++i) {
-        if (c & tbl[m_array_location[a[i].second.get_id()]])
-            continue;
-        c |= tbl[m_array_location[a[i].second.get_id()]];
-        candidate_homecell_next[n2++] = a[i].second;
-    }
-    if (n2 < HOMECELL_SIZE)
-        candidate_homecell_next[n2] = Card();
-    return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first;
-}
+    int pile = m_array_location[next.get_id()];
+    assert(m_array_pile_top[pile] != next);
+    int v = m_array_ncard_not_deadlocked_below_and[m_array_pile_top[pile].get_id()]
+      - m_array_ncard_not_deadlocked_below_and[next.get_id()];
+    v = v*16 + next.rank(); // evaluate
+    
+    // sort by v and delete duplicates in terms of pile.
+    int i;
+    for (i = 0; a[i].first <= v; ++i)
+      if (m_array_location[a[i].second.get_id()] == m_array_location[next.get_id()]) break;
+    if (a[i].first <= v) continue;
+    
+    tmp = {v, next};
+    while (true) {
+      a[i++].swap(tmp);
+      if (tmp.first == INT_MAX) { a[i].first = INT_MAX; n += 1; break; }
+      if (m_array_location[tmp.second.get_id()] == m_array_location[next.get_id()]) break; } }
+  
+  for (int i=0; i<n; ++i) candidate_homecell_next[i] = a[i].second;
+  if (n < HOMECELL_SIZE) candidate_homecell_next[n] = Card();
+  
+  return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first / 16; }
 
 int Position::calc_h_cost() noexcept {
     Action path[MAX_H_COST];
@@ -216,7 +221,7 @@ int Position::calc_h_cost() noexcept {
     }
     else {
         Card candidate_homecell_next[HOMECELL_SIZE];
-        th = obtain_lower_h_cost(candidate_homecell_next);
+        th = calc_h_cost_52f(candidate_homecell_next);
         auto pair = m_tt.emplace(piecewise_construct, forward_as_tuple(m_zobrist_key), forward_as_tuple(th, *this, candidate_homecell_next));
         it = pair.first;
     }
@@ -272,7 +277,7 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
         }
         else {
             Card candidate_homecell_next_child[HOMECELL_SIZE];
-            th_child = obtain_lower_h_cost(candidate_homecell_next_child);
+            th_child = calc_h_cost_52f(candidate_homecell_next_child);
             auto pair = m_tt.emplace(piecewise_construct, forward_as_tuple(m_zobrist_key), forward_as_tuple(th_child, *this, candidate_homecell_next_child));
             it = pair.first;
         }

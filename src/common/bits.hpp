@@ -77,8 +77,9 @@ public:
   
   static Bits next(const Card& card) noexcept { return next(card.get_id()); }
   static Bits placeable(const Card& card) noexcept { return placeable(card.get_id()); }
-  static constexpr Bits full() noexcept {
-    return Bits(static_cast<uint64_t>(0xfffffffffffff000ULL)); }
+  static constexpr Bits full() noexcept      { return Bits(UINT64_C(0xfffffffffffff000)); }
+  static constexpr Bits not_kings() noexcept { return Bits(UINT64_C(0xfff7ffbffdffe000)); }
+  static constexpr Bits kings() noexcept     { return Bits(UINT64_C(0x0008004002001000)); }
   static Bits next(int id) noexcept {
     assert((0 <= id) && (id <= 51));
     return Bits(Bits::table.bits_next[id]); }
