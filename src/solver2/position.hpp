@@ -72,19 +72,18 @@ private:
 
 private:
   Bits m_bits_deadlocked;
-  unsigned char m_ncard_deadlocked;
-  unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE]; // delete _and
+  int m_ncard_deadlocked;
+  unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE];
   bool m_is_solved;
   unordered_map<uint64_t, Position::Entry_tt> m_tt;
 
-  bool correct() const noexcept;
-  void initialize() noexcept;
+  bool ok() const noexcept;
+  void one_suit_analysis(int &, Bits &, unsigned char *) const noexcept;
   void back_to_parent(const Action* history, int naction) noexcept {
     for (int i=1; i<=naction; ++i) unmake(*(history - i)); }
 
 public:
   explicit Position(int) noexcept;
-    bool correct_Action(const Action&) const noexcept;
     uint64_t get_zobrist_key_for_h() const noexcept { return m_zobrist_key; }
     int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
     int ncard_rest_for_h() const noexcept { return m_ncard_freecell + m_ncard_tableau; }

@@ -35,138 +35,54 @@ bool Position::Entry_tt::correct() const {
     return true; 
 }
 
-bool Position::correct() const noexcept {
-  try {
-    Bits bits_deadlocked;
-    int ncard_deadlocked = 0;
-    unsigned char array_ncard_not_deadlocked_below_and[DECK_SIZE];
+void Position::one_suit_analysis(int &ncard_deadlocked, Bits &bits_deadlocked,
+				 unsigned char *array_nbelow_not_deadlocked) const noexcept {
+  bits_deadlocked.clear();
+  ncard_deadlocked = 0;
     
-    fill_n(array_ncard_not_deadlocked_below_and, DECK_SIZE, 0U);
-    for (int id=0; id<DECK_SIZE; ++id) {
-      if (m_array_location[id] >= 8) continue;
-      Bits bits_deadlock = Bits::same_suit_small_rank(id);
-      for (Card below=m_row_data.get_below(id); below.is_card();
-	   below=m_row_data.get_below(below)) {
-	if (bits_deadlock.is_set_bit(below)) {
-	  bits_deadlocked.set_bit(id);
-	  ncard_deadlocked += 1;
-	  break; } } }
+  for (int id=0; id<DECK_SIZE; ++id) {
+    if (m_array_location[id] >= 8) {
+      array_nbelow_not_deadlocked[id] = 0;
+      continue; }
+      
+    array_nbelow_not_deadlocked[id] = 1U;
+    for (Card below=m_row_data.get_below(id); below.is_card();
+	 below=m_row_data.get_below(below)) {
+      if (! Bits::same_suit_small_rank(id).is_set_bit(below)) continue;
+      bits_deadlocked.set_bit(id);
+      ncard_deadlocked += 1;
+      array_nbelow_not_deadlocked[id] = 0;
+      break; } }
+    
+  for (int pile=0; pile<TABLEAU_SIZE; ++pile) {
+    Card stack[DECK_SIZE];
+    int nstack = 0;
+    for (Card below=m_array_pile_top[pile]; below.is_card();
+	 below=m_row_data.get_below(below)) stack[nstack++] = below;
+    for (int h=nstack-2; h>=0; --h)
+      array_nbelow_not_deadlocked[stack[h].get_id()]
+	+= array_nbelow_not_deadlocked[stack[h + 1].get_id()]; } }
+
+bool Position::ok() const noexcept {
+  try {
+    int ncard_deadlocked;
+    Bits bits_deadlocked;
+    unsigned char array_nbelow_not_deadlocked[DECK_SIZE];
+    one_suit_analysis(ncard_deadlocked, bits_deadlocked, array_nbelow_not_deadlocked);
     if (bits_deadlocked != m_bits_deadlocked) throw E(__LINE__);
     if (ncard_deadlocked != m_ncard_deadlocked) throw E(__LINE__);
-    
-    for (int id=0; id<DECK_SIZE; ++id) {
-      if (m_array_location[id] >= 8) continue;
-      for (Card below=Card(id); below.is_card(); below=m_row_data.get_below(below)) {
-	bool is_deadlocked = false;
-	Bits bits_deadlock = Bits::same_suit_small_rank(below);
-	for (Card below_below=m_row_data.get_below(below); below_below.is_card();
-	     below_below=m_row_data.get_below(below_below)) {
-	  if (bits_deadlock.is_set_bit(below_below)) {
-	    is_deadlocked = true;
-	    break; } }
-	if (! is_deadlocked) array_ncard_not_deadlocked_below_and[id] += 1U; } }
-    
+
     for (int id=0; id<DECK_SIZE; ++id)
-      if (array_ncard_not_deadlocked_below_and[id]
+      if (array_nbelow_not_deadlocked[id]
 	  != m_array_nbelow_not_deadlocked[id]) throw E(__LINE__); }
   catch (const char *cstr) {
     cerr << cstr << endl;
     return false; }
   return true; }
 
-void Position::initialize() noexcept {
-    m_ncard_deadlocked = 0;
-    fill_n(m_array_nbelow_not_deadlocked, DECK_SIZE, 0U);
-    m_bits_deadlocked.clear();
-    for (int id=0; id<DECK_SIZE; ++id) {
-        if (m_array_location[id] >= 8)
-            continue;
-        m_array_nbelow_not_deadlocked[id] = 1U;
-        Bits bits_deadlock = Bits::same_suit_small_rank(id);
-
-        for (Card below=m_row_data.get_below(id); below.is_card(); below=m_row_data.get_below(below)) {
-            if (bits_deadlock.is_set_bit(below)) {
-                m_bits_deadlocked.set_bit(id);
-                ++m_ncard_deadlocked;
-                m_array_nbelow_not_deadlocked[id] = 0U;
-                break;
-            }
-        }
-    }
-
-    Card stack[52];
-    int nstack;
-    for (int column=0; column<TABLEAU_SIZE; ++column) {
-        nstack = 0;
-        for (Card below=m_array_pile_top[column]; below.is_card(); below=m_row_data.get_below(below))
-            stack[nstack++] = below;
-        for (int h=nstack-2; h>=0; --h)
-            m_array_nbelow_not_deadlocked[stack[h].get_id()] += m_array_nbelow_not_deadlocked[stack[h + 1].get_id()];
-    }
-}
-
 Position::Position(int seed) noexcept : Position_base::Position_base(seed) {
-    initialize();
-    assert(correct());
-}
-
-bool Position::correct_Action(const Action& action) const noexcept {
-    if (! action.ok()) 
-        return false;
-
-    const Card& card = action.get_card();
-    int from = action.get_from();
-    int to = action.get_to();
-    if (from != m_array_location[card.get_id()])
-        return false;
-
-    if (to == 8) {
-        if (m_array_pile_top[from] != card)
-            return false;
-        if (! m_bits_pile_top.is_set_bit(card))
-            return false;
-        if (m_bits_freecell.is_set_bit(card))
-            return false;
-        if (m_ncard_freecell >= DECK_SIZE)
-            return false;
-        if (m_bits_homecell_next.is_set_bit(card))
-            return false;
-    }
-    else {
-        Card prev = card.prev();
-        if (prev.is_card())
-            if (! m_bits_homecell.is_set_bit(prev))
-                return false;
-        if (m_bits_homecell.is_set_bit(card))
-            return false;
-        if (card.suit() != to - 12)
-            return false;
-        if (m_array_homecell[to - 12].is_card()) {
-            if (card != m_array_homecell[to - 12].next())
-                return false;
-        }
-        else {
-            if (card != Card(to - 12, 0))
-                return false;
-        }
-        if (! m_bits_homecell_next.is_set_bit(card))
-            return false;
-
-        if (from >= 8) {
-            if (! m_bits_freecell.is_set_bit(card))
-                return false;
-        }
-        else {
-            if (m_array_pile_top[from] != card)
-                return false;
-            if (! m_bits_pile_top.is_set_bit(card))
-                return false;
-            if (m_bits_deadlocked.is_set_bit(card))
-                return false;
-        }
-    }
-    return true;
-} 
+  one_suit_analysis(m_ncard_deadlocked, m_bits_deadlocked, m_array_nbelow_not_deadlocked);
+  assert(ok()); }
 
 int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   assert(candidate_homecell_next);
@@ -203,33 +119,30 @@ int Position::calc_h_cost() noexcept {
     Action path[MAX_H_COST];
     int naction = move_auto_52f(path);
     int h_cost = naction;
+    
     int th;
-
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
 #ifdef TEST_ZKEY
-        if (! it->second.identify(*this)) {
-            cerr << "Zoblist Key Conflict" << endl;
-            terminate(); 
-        }
+      if (! it->second.identify(*this)) {
+	cerr << "Zoblist Key Conflict" << endl;
+	terminate(); }
 #endif
-        th = it->second.get_h_cost();
-    }
+      th = it->second.get_h_cost(); }
     else {
-        Card candidate_homecell_next[HOMECELL_SIZE];
-        th = calc_h_cost_52f(candidate_homecell_next);
-        auto pair = m_tt.emplace(piecewise_construct, forward_as_tuple(m_zobrist_key), forward_as_tuple(th, *this, candidate_homecell_next));
-        it = pair.first;
-    }
-
+      if (ncard_rest() == 0) cout << "hoge" << endl;
+      Card candidate_homecell_next[HOMECELL_SIZE];
+      th = calc_h_cost_52f(candidate_homecell_next);
+      auto pair = m_tt.emplace(piecewise_construct,
+			       forward_as_tuple(m_zobrist_key),
+			       forward_as_tuple(th, *this, candidate_homecell_next));
+      it = pair.first; }
+    
     if (! it->second.get_is_decided()) {
         m_is_solved = false;
         while (true) {
             th = dfstt1(th, path + naction, it->second);
-            if (m_is_solved)
-                break;
-        }
-    }
+            if (m_is_solved) break; } }
 
     h_cost += th;
     back_to_parent(path + naction, naction);
@@ -384,7 +297,7 @@ void Position::make(const Action& action) noexcept {
     else m_array_nbelow_not_deadlocked[card.get_id()] += 1U; }
   
   Position_base::make(action);
-  assert(correct()); }
+  assert(ok()); }
 
 void Position::unmake(const Action& action) noexcept {
   assert(action.ok());
@@ -410,5 +323,5 @@ void Position::unmake(const Action& action) noexcept {
     else m_array_nbelow_not_deadlocked[card.get_id()] += 1U; }
 
   Position_base::unmake(action);
-  assert(correct());
+  assert(ok());
   assert(is_legal(action)); }
