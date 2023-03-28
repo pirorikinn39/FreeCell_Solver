@@ -20,85 +20,72 @@
 #define MAX_H_COST (DECK_SIZE * 2)
 
 class Position : public Position_base {
+  class Entry_tt {
+    unsigned char m_h_cost;
+    bool m_is_solved;
+    Card m_candidate_homecell_next[HOMECELL_SIZE]; 
+#ifdef TEST_ZKEY
+    Position_row m_row_data;
+#endif
+
+  public:
+    Entry_tt(int h_cost, const Position_row& row_data,
+	     const Card* candidate_homecell_next) noexcept : 
+#ifdef TEST_ZKEY
+      m_h_cost(h_cost), m_is_solved(false), m_row_data(row_data)
+#else
+      m_h_cost(h_cost), m_is_solved(false)
+#endif
+    {
+      copy_n(candidate_homecell_next, N_SUIT, m_candidate_homecell_next);
+      assert(ok()); }
+    void set_h_cost(int h_cost) noexcept {
+      assert(0 <= h_cost && h_cost <= MAX_H_COST);
+      m_h_cost = h_cost; }
+    void set_solved() noexcept {
+      assert(! m_is_solved);
+      m_is_solved = true; }
+    
+    int get_h_cost() const noexcept { return m_h_cost; }
+    bool is_solved() const noexcept { return m_is_solved; }
+    const Card* get_candidate_homecell_next() const noexcept {
+      return m_candidate_homecell_next; }
+    bool test_zkey(const Position_row& row_data) const noexcept {
+#ifdef TEST_ZKEY
+      return m_row_data == row_data;
+#else
+      return true;
+#endif
+    }
+    bool ok() const noexcept;
+  };
 
 private:
-    class Entry_tt {
-    private:
-      unsigned char m_h_cost;
-      bool m_is_decided; // delete
-      Card m_candidate_homecell_next[HOMECELL_SIZE]; 
-#ifdef TEST_ZKEY
-      Position_row m_row_data;
-#endif
-        bool correct() const;
-
-    public:
-      Entry_tt(int h_cost, const Position& position, const Card* candidate_homecell_next) noexcept : m_h_cost(h_cost), m_is_decided(false) {
-            assert((h_cost >= 0) && (h_cost < 256));
-            copy_n(candidate_homecell_next, N_SUIT, m_candidate_homecell_next);
-#ifdef TEST_ZKEY
-            m_row_data = position.get_row_data();
-#endif
-            assert(correct());
-        };
-        void set_h_cost(int h_cost) noexcept {
-            assert((h_cost >= 0) && (h_cost < 256));
-            m_h_cost = h_cost;
-            assert(correct());
-        };
-        void set_is_decided(bool is_decided) noexcept {
-            assert(! m_is_decided);
-            m_is_decided = is_decided;
-            assert(correct());
-        };
-        int get_h_cost() const noexcept {
-            assert(correct());
-            return m_h_cost;
-        };
-        bool get_is_decided() const noexcept {
-            assert(correct());
-            return m_is_decided;
-        };
-        const Card* get_candidate_homecell_next() const noexcept {
-            assert(correct());
-            return m_candidate_homecell_next;
-        };
-#ifdef TEST_ZKEY
-      bool identify(const Position& position) const noexcept { // delete
-            assert(correct());
-            return m_row_data == position.get_row_data(); }
-#endif      
-    };
-
-private:
-  Bits m_bits_deadlocked;
-  unsigned char m_ncard_deadlocked;
-  unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE]; // delete _and
-  bool m_is_solved;
   unordered_map<uint64_t, Position::Entry_tt> m_tt;
+  Bits m_bits_deadlocked;
+  int m_ncard_deadlocked;
+  unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE];
+  bool m_is_solved;
 
-  bool correct() const noexcept;
-  void initialize() noexcept;
-  void back_to_parent(const Action* history, int naction) noexcept {
-    for (int i=1; i<=naction; ++i) unmake(*(history - i)); }
+  bool ok() const noexcept;
+  void one_suit_analysis(int &, Bits &, unsigned char *) const noexcept;
+  int calc_nabove_not_deadlocked(const Card& card) const noexcept;
+  int move_to_homecell(const Card&, Action*) noexcept;
 
 public:
   explicit Position(int) noexcept;
-    bool correct_Action(const Action&) const noexcept;
-    uint64_t get_zobrist_key_for_h() const noexcept { return m_zobrist_key; }
-    int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
-    int ncard_rest_for_h() const noexcept { return m_ncard_freecell + m_ncard_tableau; }
-    int calc_h_cost_52f(Card*) noexcept;
-    int obtain_ncard_not_deadlocked_above(const Card& card) const noexcept {
-        return m_array_nbelow_not_deadlocked[m_array_pile_top[m_array_location[card.get_id()]].get_id()] - m_array_nbelow_not_deadlocked[card.get_id()]; }
-    uint64_t m_tt_size() const noexcept { return m_tt.size(); }
-    int calc_h_cost() noexcept;
-    int dfstt1(int, Action*, Entry_tt&) noexcept;
-    int move_to_homecell_next(const Card&, Action*) noexcept;
-    int move_auto(Action*) noexcept;
-    int move_auto_52f(Action*) noexcept;
-    void make(const Action&) noexcept;
-    void unmake(const Action&) noexcept;
+  uint64_t get_zobrist_key_for_h() const noexcept { return m_zobrist_key; }
+  int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
+  int calc_h_cost_52f(Card*) noexcept;
+  uint64_t m_tt_size() const noexcept { return m_tt.size(); }
+  int calc_h_cost() noexcept;
+  int dfstt1(int, Action*, Entry_tt&) noexcept;
+  int move_auto(Action*) noexcept;
+  int move_auto_52f(Action*) noexcept;
+  void unmake_n(const Action* path, int n) noexcept {
+    for (int i=1; i<=n; ++i) unmake(*(path - i)); }
+  void make(const Action&) noexcept;
+  void unmake(const Action&) noexcept;
 };
 
 #endif
