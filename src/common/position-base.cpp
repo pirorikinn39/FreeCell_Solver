@@ -2,6 +2,11 @@
 #include "position-base.hpp"
 Position_base::Table Position_base::table;
 
+bool Position_row::ok() const noexcept {
+  for (int id=0; id<DECK_SIZE; ++id)
+    if (! Card(m_array_i8[id])) return false;
+  return true; }
+
 void Position_base::initialize(const Card (&field)[TABLEAU_SIZE][64],
 			       const Card (&array_homecell)[HOMECELL_SIZE],
 			       const Card (&array_freecell)[FREECELL_SIZE]) noexcept {

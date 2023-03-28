@@ -19,51 +19,29 @@
 #define TABLEAU_SIZE      8
 
 union Position_row {
-#ifdef TEST_ZKEY
-  Position_row() noexcept { m_array_u64[6] = 0ULL; }
-#endif
-  
   Position_row& operator=(const Position_row& o) noexcept {
     assert(o.ok());
-#ifdef TEST_ZKEY
-    if (this != &o) copy_n(o.m_array_u64, 7, m_array_u64);
-#else
-    if (this != &o) copy_n(o.m_array_i8, 52, m_array_i8);
-#endif
+    if (this != &o) copy_n(o.m_array_u32, 13, m_array_u32);
     return *this; }
   void set_below(const Card& card, const Card& below) noexcept {  
     assert(card.is_card() && below);
     m_array_i8[card.get_id()] = below.get_id(); }
   const Card get_below(int id) const noexcept {
-    assert(0 <= id && id <= 51 && ok());
+    assert(0 <= id && id <= 51);
     return Card(m_array_i8[id]); }
   const Card get_below(const Card& card) const noexcept { return get_below(card.get_id()); }
   bool operator==(const Position_row& o) const noexcept {
     assert(ok() && o.ok());
-#ifdef TEST_ZKEY
-    for (int i=0; i<7; ++i)
-      if (m_array_u64[i] != o.m_array_u64[i]) return false;
-#else
-    for (int id=0; id<52; ++id)
-      if (m_array_i8[id] != o.m_array_i8[id]) return false;
-#endif
+    for (int i=0; i<13; ++i)
+      if (m_array_u32[i] != o.m_array_u32[i]) return false;
     return true; }
-  bool ok() const noexcept {
-    for (int id=0; id<52; ++id)
-      if (! Card(m_array_i8[id])) return false;
-#ifdef TEST_ZKEY
-    for (int id=52; id<56; ++id)
-      if (m_array_i8[id] != 0) return false;
-#endif
-    return true; }
+  bool ok() const noexcept;
 
 private:
-#ifdef TEST_ZKEY
-  uint64_t m_array_u64[7]; // try uint32_t
-#endif
-  int8_t m_array_i8[56];
+  uint32_t m_array_u32[13];
+  int8_t m_array_i8[52];
 };
-  
+
 class Action {
   Card m_card;
   char m_from, m_to;
@@ -97,19 +75,19 @@ protected:
       return z_factor[card.get_id()][below.get_id()]; }
   };
   static Table table;
-  Position_row m_row_data;
+  uint64_t m_zobrist_key;
   Bits m_array_bits_pile_card[TABLEAU_SIZE];
-  Card m_array_pile_top[TABLEAU_SIZE];
-  Card m_array_homecell[HOMECELL_SIZE];
   Bits m_bits_homecell;
   Bits m_bits_freecell;
   Bits m_bits_homecell_next;
   Bits m_bits_pile_top;
   Bits m_array_bits_pile_next[TABLEAU_SIZE];
-  uint64_t m_zobrist_key;
+  Position_row m_row_data;
   int m_ncard_freecell;
   int m_ncard_tableau;
   unsigned char m_array_location[DECK_SIZE];
+  Card m_array_pile_top[TABLEAU_SIZE];
+  Card m_array_homecell[HOMECELL_SIZE];
   
   void initialize(const Card (&)[TABLEAU_SIZE][64], const Card (&)[HOMECELL_SIZE],
 		  const Card (&)[FREECELL_SIZE]) noexcept;
