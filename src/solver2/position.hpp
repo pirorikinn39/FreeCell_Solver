@@ -17,44 +17,44 @@
 #include "../common/bits.hpp"
 
 
-#define MAX_H_COST (DECK_SIZE * 2)
+#define MAX_F_COST_52F (DECK_SIZE * 2)
 
 class Position : public Position_base {
   class Entry_tt {
 #ifdef TEST_ZKEY
     Position_row m_row_data;
 #endif
-    unsigned char m_h_cost;
+    unsigned char m_lower_bound;
     bool m_is_solved;
     Card m_candidate_homecell_next[HOMECELL_SIZE];
 
   public:
-    Entry_tt(int h_cost, const Position_row& row_data,
+    Entry_tt(int lower_bound, const Position_row& row_data,
 	     const Card* candidate_homecell_next) noexcept : 
 #ifdef TEST_ZKEY
-      m_row_data(row_data), m_h_cost(h_cost), m_is_solved(false)
+      m_row_data(row_data), m_lower_bound(lower_bound), m_is_solved(false)
 #else
-      m_h_cost(h_cost), m_is_solved(false)
+      m_lower_bound(lower_bound), m_is_solved(false)
 #endif
     {
       copy_n(candidate_homecell_next, N_SUIT, m_candidate_homecell_next);
       assert(ok()); }
-    void set_h_cost(int h_cost) noexcept {
-      assert(0 <= h_cost && h_cost <= MAX_H_COST);
-      m_h_cost = h_cost; }
+    void update_lower_bound(int lower_bound) noexcept {
+      assert(m_lower_bound <= lower_bound && lower_bound <= MAX_F_COST_52F);
+      m_lower_bound = lower_bound; }
     void set_solved() noexcept {
       assert(! m_is_solved);
       m_is_solved = true; }
     
-    int get_h_cost() const noexcept { return m_h_cost; }
+    int get_lower_bound() const noexcept { return m_lower_bound; }
     bool is_solved() const noexcept { return m_is_solved; }
     const Card* get_candidate_homecell_next() const noexcept {
       return m_candidate_homecell_next; }
-    bool test_zobrist_key(const Position_row& row_data) const noexcept {
+    void test_zobrist_key(const Position_row& row_data) const noexcept {
 #ifdef TEST_ZKEY
-      return m_row_data == row_data;
-#else
-      return true;
+      if (m_row_data == row_data) return;
+      cerr << "Zobrist Key Conflict" << endl;
+      terminate();
 #endif
     }
     bool ok() const noexcept;

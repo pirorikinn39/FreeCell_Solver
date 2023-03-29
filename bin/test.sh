@@ -1,15 +1,18 @@
 #!/bin/bash -ue
 OPT=("")
 FULL=no
+TARGETS=(solver1 solver2)
 for arg in $@
 do
     case $arg in
-	full ) FULL=yes;;
-	* )    OPT+=($arg);;
+	solver1 ) TARGETS=solver1; OPT+=($arg);;
+	solver2 ) TARGETS=solver2; OPT+=($arg);;
+	full )    FULL=yes;;
+	* )       OPT+=($arg);;
     esac
 done
 
-if [ $FULL == yes ];
+if [ $FULL == yes ]
 then
     PROGRAM_1a='{print $1 "," $2 "," $3 "," $4}'
     PROGRAM_1b='{print $1 "," $2 "," $3 "," $4}'
@@ -22,20 +25,26 @@ else
     PROGRAM_2b='{print $1 "," $2}'
 fi
 
-bin/build.sh $OPT
+bin/build.sh ${OPT[@]}
 for i in {1..100}
 do
-    printf "Game #%04d: solver1..." $i
-    cmp -s <( bin/solver1 $i | awk -F',' "$PROGRAM_1a" ) \
-           <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_1b" )
-    if [ $? -gt 0 ]
-    then echo "ERROR!"; break
-    else printf "PASSED, solver2..."
+    if [[ "${TARGETS[*]}" =~ solver1 ]]; then
+	printf "Game #%04d: solver1..." $i
+	cmp -s <( bin/solver1 $i | awk -F',' "$PROGRAM_1a" ) \
+            <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_1b" )
+	if [ $? -gt 0 ]
+	then echo ERROR!; break
+	else echo PASSED
+	fi
     fi
-    cmp -s <( bin/solver2 $i | awk -F',' "$PROGRAM_2a" ) \
-           <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_2b" )
-    if [ $? -gt 0 ]
-    then echo "ERROR!"; break
-    else printf "PASSED\n"
+    
+    if [[ "${TARGETS[*]}" =~ solver2 ]]; then
+	printf "Game #%04d: solver2..." $i
+	cmp -s <( bin/solver2 $i | awk -F',' "$PROGRAM_2a" ) \
+            <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_2b" )
+	if [ $? -gt 0 ]
+	then echo ERROR!; break
+	else echo PASSED
+	fi
     fi
 done

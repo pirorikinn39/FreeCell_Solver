@@ -6,7 +6,7 @@ bool Position::Entry_tt::ok() const noexcept {
 #ifdef TEST_ZKEY
     if (! m_row_data.ok()) throw E(__LINE__);
 #endif
-    if (! (0 <= m_h_cost && m_h_cost <= MAX_H_COST)) throw E(__LINE__);
+    if (m_lower_bound < 0 || MAX_F_COST_52F < m_lower_bound) throw E(__LINE__);
     
     for (int i=0; i<N_SUIT; ++i) {
       if (m_candidate_homecell_next[i] == Card()) break;
@@ -105,18 +105,15 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first; }
 
 int Position::calc_h_cost() noexcept {
-    Action path[MAX_H_COST];
+    Action path[MAX_F_COST_52F];
     int naction = move_auto_52f(path);
     
     int esti;
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
       assert(it->second.ok());
-      if (! it->second.test_zobrist_key(get_row_data())) {
-	cerr << "Zobrist Key Conflict" << endl;
-	terminate(); }
-
-      esti = it->second.get_h_cost(); }
+      it->second.test_zobrist_key(get_row_data());
+      esti = it->second.get_lower_bound(); }
     else {
       Card candidate_homecell_next[HOMECELL_SIZE];
       esti = calc_h_cost_52f(candidate_homecell_next);
@@ -142,7 +139,7 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     assert(th == 0);
     return 0; }
   
-  int new_th = MAX_H_COST;
+  int new_bound = UCHAR_MAX;
   int ncard_rest_and_deadlocked = ncard_rest() + get_ncard_deadlocked();
   const Card* candidate_homecell_next_parent = entry_parent.get_candidate_homecell_next();
   assert(candidate_homecell_next_parent[0].is_card());
@@ -151,11 +148,11 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     if (! next) break;
 
     int th_estimate = ncard_rest_and_deadlocked + calc_nabove_not_deadlocked(next);
-    if (th_estimate >= new_th) break;
+    if (th_estimate >= new_bound) break;
     
     /* break more aggressively
       if (th_estimate > th) {
-        new_th = min(new_th, th_estimate);
+        new_bound = min(new_bound, th_estimate);
         break; } */
 
     int esti;
@@ -165,10 +162,8 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
       assert(it->second.ok());
-      if (! it->second.test_zobrist_key(get_row_data())) {
-	cerr << "Zobrist Key Conflict" << endl;
-	terminate(); }
-      esti = it->second.get_h_cost(); }
+      it->second.test_zobrist_key(get_row_data());
+      esti = it->second.get_lower_bound(); }
     else {
       Card candidate_homecell_next_child[HOMECELL_SIZE];
       esti = calc_h_cost_52f(candidate_homecell_next_child);
@@ -180,23 +175,22 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     assert(cost + esti >= th);
     // assert( 'length of an optimal solution from this parent' >= th );
     if (cost + esti <= th && it->second.is_solved()) {
-      new_th = th;
+      new_bound = th;
       m_is_solved = true; }
     else if (cost + esti <= th)
-      new_th = min(new_th, cost + dfstt1(th - cost, path + cost, it->second));
+      new_bound = min(new_bound, cost + dfstt1(th - cost, path + cost, it->second));
     else
-      new_th = min(new_th, cost + esti);
+      new_bound = min(new_bound, cost + esti);
     
     unmake_n(path + cost, cost);
     
     if (m_is_solved) {
-      assert(th == new_th && entry_parent.get_h_cost() == new_th);
+      assert(th == new_bound && entry_parent.get_lower_bound() == new_bound);
       entry_parent.set_solved();
       break; } }
   
-  assert(new_th >= entry_parent.get_h_cost());
-  entry_parent.set_h_cost(new_th);
-  return new_th; }  
+  entry_parent.update_lower_bound(new_bound);
+  return new_bound; }
 
 int Position::move_to_homecell(const Card& next, Action* history) noexcept {
   assert(m_bits_homecell_next.is_set_bit(next));
