@@ -107,35 +107,33 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
 int Position::calc_h_cost() noexcept {
     Action path[MAX_H_COST];
     int naction = move_auto_52f(path);
-    int h_cost = naction;
     
-    int th;
+    int esti;
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
       assert(it->second.ok());
-      if (! it->second.test_zkey(get_row_data())) {
-	cerr << "Zoblist Key Conflict" << endl;
+      if (! it->second.test_zobrist_key(get_row_data())) {
+	cerr << "Zobrist Key Conflict" << endl;
 	terminate(); }
 
-      th = it->second.get_h_cost(); }
+      esti = it->second.get_h_cost(); }
     else {
       Card candidate_homecell_next[HOMECELL_SIZE];
-      th = calc_h_cost_52f(candidate_homecell_next);
-      auto pair = m_tt.emplace(piecewise_construct,
-			       forward_as_tuple(m_zobrist_key),
-			       forward_as_tuple(th, get_row_data(), candidate_homecell_next));
-      it = pair.first; }
-    
+      esti = calc_h_cost_52f(candidate_homecell_next);
+      it = m_tt.emplace(piecewise_construct,
+			forward_as_tuple(m_zobrist_key),
+			forward_as_tuple(esti, get_row_data(),
+					 candidate_homecell_next)).first; }
+    int th = esti;
     if (! it->second.is_solved()) {
-        m_is_solved = false;
-        while (true) {
-            th = dfstt1(th, path + naction, it->second);
-            if (m_is_solved) break; } }
+      m_is_solved = false;
+      while (true) {
+	th = dfstt1(th, path + naction, it->second);
+	if (m_is_solved) break; } }
 
-    h_cost += th;
     unmake_n(path + naction, naction);
     
-    return h_cost; }
+    return naction + th; }
 
 int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noexcept {
   if (ncard_rest() == 0) {
@@ -144,7 +142,7 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     assert(th == 0);
     return 0; }
   
-  int th_child, new_th = MAX_H_COST;
+  int new_th = MAX_H_COST;
   int ncard_rest_and_deadlocked = ncard_rest() + get_ncard_deadlocked();
   const Card* candidate_homecell_next_parent = entry_parent.get_candidate_homecell_next();
   assert(candidate_homecell_next_parent[0].is_card());
@@ -159,35 +157,35 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
       if (th_estimate > th) {
         new_th = min(new_th, th_estimate);
         break; } */
-    
+
+    int esti;
     int cost = move_to_homecell(next, path);
     cost += move_auto_52f(path + cost);
 
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
       assert(it->second.ok());
-      if (! it->second.test_zkey(get_row_data())) {
-	cerr << "Zoblist Key Conflict" << endl;
+      if (! it->second.test_zobrist_key(get_row_data())) {
+	cerr << "Zobrist Key Conflict" << endl;
 	terminate(); }
-      th_child = it->second.get_h_cost(); }
+      esti = it->second.get_h_cost(); }
     else {
       Card candidate_homecell_next_child[HOMECELL_SIZE];
-      th_child = calc_h_cost_52f(candidate_homecell_next_child);
-      auto pair = m_tt.emplace(piecewise_construct,
-			       forward_as_tuple(m_zobrist_key),
-			       forward_as_tuple(th_child, get_row_data(),
-						candidate_homecell_next_child));
-      it = pair.first; }
+      esti = calc_h_cost_52f(candidate_homecell_next_child);
+      it = m_tt.emplace(piecewise_construct,
+			forward_as_tuple(m_zobrist_key),
+			forward_as_tuple(esti, get_row_data(),
+					 candidate_homecell_next_child)).first; }
 
-    assert(cost + th_child >= th);
+    assert(cost + esti >= th);
     // assert( 'length of an optimal solution from this parent' >= th );
-    if (cost + th_child <= th && it->second.is_solved()) {
+    if (cost + esti <= th && it->second.is_solved()) {
       new_th = th;
       m_is_solved = true; }
-    else if (cost + th_child <= th)
+    else if (cost + esti <= th)
       new_th = min(new_th, cost + dfstt1(th - cost, path + cost, it->second));
     else
-      new_th = min(new_th, cost + th_child);
+      new_th = min(new_th, cost + esti);
     
     unmake_n(path + cost, cost);
     

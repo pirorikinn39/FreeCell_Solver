@@ -21,18 +21,18 @@
 
 class Position : public Position_base {
   class Entry_tt {
-    unsigned char m_h_cost;
-    bool m_is_solved;
-    Card m_candidate_homecell_next[HOMECELL_SIZE]; 
 #ifdef TEST_ZKEY
     Position_row m_row_data;
 #endif
+    unsigned char m_h_cost;
+    bool m_is_solved;
+    Card m_candidate_homecell_next[HOMECELL_SIZE];
 
   public:
     Entry_tt(int h_cost, const Position_row& row_data,
 	     const Card* candidate_homecell_next) noexcept : 
 #ifdef TEST_ZKEY
-      m_h_cost(h_cost), m_is_solved(false), m_row_data(row_data)
+      m_row_data(row_data), m_h_cost(h_cost), m_is_solved(false)
 #else
       m_h_cost(h_cost), m_is_solved(false)
 #endif
@@ -50,7 +50,7 @@ class Position : public Position_base {
     bool is_solved() const noexcept { return m_is_solved; }
     const Card* get_candidate_homecell_next() const noexcept {
       return m_candidate_homecell_next; }
-    bool test_zkey(const Position_row& row_data) const noexcept {
+    bool test_zobrist_key(const Position_row& row_data) const noexcept {
 #ifdef TEST_ZKEY
       return m_row_data == row_data;
 #else
@@ -74,7 +74,6 @@ private:
 
 public:
   explicit Position(int) noexcept;
-  uint64_t get_zobrist_key_for_h() const noexcept { return m_zobrist_key; }
   int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
   int calc_h_cost_52f(Card*) noexcept;
   uint64_t m_tt_size() const noexcept { return m_tt.size(); }
