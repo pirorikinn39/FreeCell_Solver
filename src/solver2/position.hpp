@@ -50,7 +50,7 @@ class Position : public Position_base {
     bool is_solved() const noexcept { return m_is_solved; }
     const Card* get_candidate_homecell_next() const noexcept {
       return m_candidate_homecell_next; }
-    constexpr bool test_zkey(const Position_row& row_data) const noexcept {
+    bool test_zkey(const Position_row& row_data) const noexcept {
 #ifdef TEST_ZKEY
       return m_row_data == row_data;
 #else
