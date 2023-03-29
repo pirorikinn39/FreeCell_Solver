@@ -1,5 +1,5 @@
 #!/bin/bash -ue
-OPT=()
+OPT=("")
 FULL=no
 for arg in $@
 do
