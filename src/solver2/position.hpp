@@ -21,12 +21,12 @@
 
 class Position : public Position_base {
   class Entry_tt {
-    unsigned char m_h_cost;
-    bool m_is_solved;
-    Card m_candidate_homecell_next[HOMECELL_SIZE]; 
 #ifdef TEST_ZKEY
     Position_row m_row_data;
 #endif
+    unsigned char m_h_cost;
+    bool m_is_solved;
+    Card m_candidate_homecell_next[HOMECELL_SIZE];
 
   public:
     Entry_tt(int h_cost, const Position_row& row_data,
