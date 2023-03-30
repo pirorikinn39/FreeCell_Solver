@@ -6,14 +6,54 @@
 #include "position.hpp"
 #include "solve.hpp"
 
-class Entry_tt {
+class Entry_TT_52f {
+#ifdef TEST_ZKEY
+  Position_row m_row_data;
+#endif
+  unsigned char m_lower_bound;
+  bool m_is_solved;
+  Card m_candidate_homecell_next[HOMECELL_SIZE];
+  
+public:
+  Entry_TT_52f(int lower_bound, const Position_row& row_data,
+	       const Card* candidate_homecell_next) noexcept : 
+#ifdef TEST_ZKEY
+    m_row_data(row_data), m_lower_bound(lower_bound), m_is_solved(false)
+#else
+    m_lower_bound(lower_bound), m_is_solved(false)
+#endif
+  {
+    copy_n(candidate_homecell_next, N_SUIT, m_candidate_homecell_next);
+    assert(ok()); }
+  void update_lower_bound(int lower_bound) noexcept {
+    assert(m_lower_bound <= lower_bound && lower_bound <= MAX_F_COST_52F);
+    m_lower_bound = lower_bound; }
+  void set_solved() noexcept {
+    assert(! m_is_solved);
+    m_is_solved = true; }
+  
+  int get_lower_bound() const noexcept { return m_lower_bound; }
+  bool is_solved() const noexcept { return m_is_solved; }
+  const Card* get_candidate_homecell_next() const noexcept {
+    return m_candidate_homecell_next; }
+    void test_zobrist_key(const Position_row& row_data) const noexcept {
+#ifdef TEST_ZKEY
+      if (m_row_data == row_data) return;
+      cerr << "Zobrist Key Conflict" << endl;
+      terminate();
+#endif
+    }
+  bool ok() const noexcept;
+};
+
+class Entry_TT_4f {
 #ifdef TEST_ZKEY
   Position_row m_row_data;
 #endif
   unsigned char m_lower_bound;
   bool m_is_visiting;
 public:
-  Entry_tt(int lower_bound, const Position& position) noexcept :
+  Entry_TT_4f(int lower_bound, const Position& position) noexcept :
 #ifdef TEST_ZKEY
     m_row_data(position.get_row_data()), m_lower_bound(lower_bound), m_is_visiting(false)
 #else
@@ -36,6 +76,8 @@ public:
 #endif
   }
   bool ok() const noexcept {
+    if (UCHAR_MAX < m_lower_bound) return false;
+    
 #ifdef TEST_ZKEY
     return m_row_data.ok();
 #else
@@ -48,27 +90,16 @@ class Solve {
   Position m_position;
   bool m_is_solved;
   Action m_solution[UCHAR_MAX];
-  unordered_map<uint64_t, Entry_tt> m_tt;
+  unordered_map<uint64_t, Entry_TT_4f>  m_tt_4f;
+  unordered_map<uint64_t, Entry_TT_52f> m_tt_52f;
   
-  int dfstt1(int, int, Action*, Entry_tt&) noexcept;
-  pair<int, Entry_tt&> lookup(Position& position) noexcept {
-    auto it = m_tt.find(position.get_zobrist_key());
-    if (it != m_tt.end()) {
-      it->second.test_zobrist_key(position);
-      return {it->second.get_lower_bound(), it->second}; }
-    else {
-      int h_cost = position.calc_h_cost();
-      auto pair = m_tt.emplace(piecewise_construct,
-			       forward_as_tuple(position.get_zobrist_key()),
-			       forward_as_tuple(h_cost, position));
-      assert(pair.second);
-      return {h_cost, (pair.first)->second}; } }
+  int dfstt1(int, int, Action*, Entry_TT_4f&) noexcept;
 
 public:
   Solve(int) noexcept;
 };
 
-int Solve::dfstt1(int th, int g_cost, Action* path, Entry_tt& entry_parent) noexcept {
+int Solve::dfstt1(int th, int g_cost, Action* path, Entry_TT_4f& entry_parent) noexcept {
   if (m_position.ncard_rest() == 0) {
     assert(th == 0);
     m_is_solved = true;
@@ -89,17 +120,26 @@ int Solve::dfstt1(int th, int g_cost, Action* path, Entry_tt& entry_parent) noex
     int cost = 1 + nauto;
     int new_g_cost = g_cost + cost;
     assert(new_g_cost <= UCHAR_MAX);
-    
-    auto pair_lookup = lookup(m_position);
-    int value = pair_lookup.first;
-    assert(value >= m_position.ncard_rest() && value <= UCHAR_MAX);
-    assert(cost + value >= th);
-    if (pair_lookup.second.is_visiting());
-    else if (cost + value <= th)
-      new_bound = min(new_bound, cost + dfstt1(th - cost, new_g_cost, path,
-					       pair_lookup.second));
+
+    int bound_child;
+    auto it = m_tt_4f.find(m_position.get_zobrist_key());
+    if (it != m_tt_4f.end()) {
+      it->second.test_zobrist_key(m_position);
+      bound_child = it->second.get_lower_bound(); }
+    else {
+      bound_child = m_position.solve_52f(new_bound);
+      it = m_tt_4f.emplace(piecewise_construct,
+			   forward_as_tuple(m_position.get_zobrist_key()),
+			   forward_as_tuple(bound_child, m_position)).first; }
+    auto& entry_child = it->second;
+    assert(entry_child.ok());
+    assert(m_position.ncard_rest() <= bound_child);
+    assert(cost + bound_child >= th);
+    if (entry_child.is_visiting());
+    else if (cost + bound_child <= th)
+      new_bound = min(new_bound, cost + dfstt1(th - cost, new_g_cost, path, entry_child));
     else
-      new_bound = min(new_bound, cost + value);
+      new_bound = min(new_bound, cost + bound_child);
     
     m_position.unmake_n(path + new_g_cost, cost);
     if (m_is_solved) {
@@ -115,10 +155,10 @@ int Solve::dfstt1(int th, int g_cost, Action* path, Entry_tt& entry_parent) noex
 Solve::Solve(int game_id) noexcept : m_position(game_id) {
   Action path[UCHAR_MAX];
   int g_cost = m_position.move_auto(path); 
-  int esti = m_position.calc_h_cost();
-  Entry_tt& entry = m_tt.emplace(piecewise_construct,
-				 forward_as_tuple(m_position.get_zobrist_key()),
-				 forward_as_tuple(esti, m_position)).first->second;
+  int esti = m_position.solve_52f(UCHAR_MAX);
+  Entry_TT_4f& entry = m_tt_4f.emplace(piecewise_construct,
+				       forward_as_tuple(m_position.get_zobrist_key()),
+				       forward_as_tuple(esti, m_position)).first->second;
   assert(entry.ok());
   
   int th = esti;
@@ -132,6 +172,6 @@ Solve::Solve(int game_id) noexcept : m_position(game_id) {
     int min_f_cost = g_cost + th;
     cout << ", " << min_f_cost << ", ";
     cout << gen_solution(game_id, m_solution, min_f_cost);
-    cout << ", " << m_tt.size() << ", " << m_position.m_tt_size(); } }
+    cout << ", " << m_tt_4f.size() << ", " << m_position.m_tt_size(); } }
 
 void solve(int game_id) noexcept { Solve solve(game_id); }

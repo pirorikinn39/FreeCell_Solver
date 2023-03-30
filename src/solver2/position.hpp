@@ -71,13 +71,13 @@ private:
   void one_suit_analysis(int &, Bits &, unsigned char *) const noexcept;
   int calc_nabove_not_deadlocked(const Card& card) const noexcept;
   int move_to_homecell(const Card&, Action*) noexcept;
+  int calc_h_cost_52f(Card*) noexcept;
 
 public:
   explicit Position(int) noexcept;
   int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
-  int calc_h_cost_52f(Card*) noexcept;
   uint64_t m_tt_size() const noexcept { return m_tt.size(); }
-  int calc_h_cost() noexcept;
+  int solve_52f(int bound_max) noexcept;
   int dfstt1(int, Action*, Entry_tt&) noexcept;
   int move_auto(Action*) noexcept;
   int move_auto_52f(Action*) noexcept;

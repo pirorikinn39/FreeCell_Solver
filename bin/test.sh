@@ -18,6 +18,8 @@ then
     PROGRAM_1b='{print $1 "," $2 "," $3 "," $4}'
     PROGRAM_2a='{print $1 "," $2 "," $3 "," $4 "," $5}'
     PROGRAM_2b='{print $1 "," $2 "," $3 "," $5 "," $6}'
+    PROGRAM_2a='{print $1 "," $2 "," $3 "," $4}'
+    PROGRAM_2b='{print $1 "," $2 "," $3 "," $5}'
 else
     PROGRAM_1a='{print $1 "," $2}'
     PROGRAM_1b='{print $1 "," $2}'
@@ -30,9 +32,8 @@ for i in {1..100}
 do
     if [[ "${TARGETS[*]}" =~ solver1 ]]; then
 	printf "Game #%04d: solver1..." $i
-	cmp -s <( bin/solver1 $i | awk -F',' "$PROGRAM_1a" ) \
-            <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_1b" )
-	if [ $? -gt 0 ]
+	if ! cmp -s <( bin/solver1 $i | awk -F',' "$PROGRAM_1a" ) \
+             <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_1b" )
 	then echo ERROR!; break
 	else echo PASSED
 	fi
@@ -40,9 +41,8 @@ do
     
     if [[ "${TARGETS[*]}" =~ solver2 ]]; then
 	printf "Game #%04d: solver2..." $i
-	cmp -s <( bin/solver2 $i | awk -F',' "$PROGRAM_2a" ) \
-            <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_2b" )
-	if [ $? -gt 0 ]
+	if ! cmp -s <( bin/solver2 $i | awk -F',' "$PROGRAM_2a" ) \
+             <( gzip -dc data/ref.txt.gz | awk -F',' "NR == $i $PROGRAM_2b" )
 	then echo ERROR!; break
 	else echo PASSED
 	fi

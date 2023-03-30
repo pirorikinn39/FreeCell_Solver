@@ -104,27 +104,27 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   
   return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first; }
 
-int Position::calc_h_cost() noexcept {
+int Position::solve_52f(int bound_max) noexcept {
     Action path[MAX_F_COST_52F];
     int naction = move_auto_52f(path);
     
-    int esti;
+    int bound_52f;
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
       assert(it->second.ok());
       it->second.test_zobrist_key(get_row_data());
-      esti = it->second.get_lower_bound(); }
+      bound_52f = it->second.get_lower_bound(); }
     else {
       Card candidate_homecell_next[HOMECELL_SIZE];
-      esti = calc_h_cost_52f(candidate_homecell_next);
+      bound_52f = calc_h_cost_52f(candidate_homecell_next);
       it = m_tt.emplace(piecewise_construct,
 			forward_as_tuple(m_zobrist_key),
-			forward_as_tuple(esti, get_row_data(),
+			forward_as_tuple(bound_52f, get_row_data(),
 					 candidate_homecell_next)).first; }
-    int th = esti;
+    int th = bound_52f;
     if (! it->second.is_solved()) {
       m_is_solved = false;
-      while (true) {
+      while (naction + th < bound_max) {
 	th = dfstt1(th, path + naction, it->second);
 	if (m_is_solved) break; } }
 
@@ -155,7 +155,7 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
         new_bound = min(new_bound, th_estimate);
         break; } */
 
-    int esti;
+    int bound_child;
     int cost = move_to_homecell(next, path);
     cost += move_auto_52f(path + cost);
 
@@ -163,24 +163,24 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     if (it != m_tt.end()) {
       assert(it->second.ok());
       it->second.test_zobrist_key(get_row_data());
-      esti = it->second.get_lower_bound(); }
+      bound_child = it->second.get_lower_bound(); }
     else {
       Card candidate_homecell_next_child[HOMECELL_SIZE];
-      esti = calc_h_cost_52f(candidate_homecell_next_child);
+      bound_child = calc_h_cost_52f(candidate_homecell_next_child);
       it = m_tt.emplace(piecewise_construct,
 			forward_as_tuple(m_zobrist_key),
-			forward_as_tuple(esti, get_row_data(),
+			forward_as_tuple(bound_child, get_row_data(),
 					 candidate_homecell_next_child)).first; }
 
-    assert(cost + esti >= th);
+    assert(cost + bound_child >= th);
     // assert( 'length of an optimal solution from this parent' >= th );
-    if (cost + esti <= th && it->second.is_solved()) {
+    if (cost + bound_child <= th && it->second.is_solved()) {
       new_bound = th;
       m_is_solved = true; }
-    else if (cost + esti <= th)
+    else if (cost + bound_child <= th)
       new_bound = min(new_bound, cost + dfstt1(th - cost, path + cost, it->second));
     else
-      new_bound = min(new_bound, cost + esti);
+      new_bound = min(new_bound, cost + bound_child);
     
     unmake_n(path + cost, cost);
     
