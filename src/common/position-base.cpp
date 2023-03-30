@@ -114,15 +114,15 @@ int Position_base::gen_actions(Action (&actions)[MAX_ACTION_SIZE]) const noexcep
     Bits bits_from = m_bits_freecell | m_bits_pile_top;
     Bits bits_possible;
 
+    bits_possible = bits_from & m_bits_homecell_next;
+    for (Card card=bits_possible.pop(); card; card=bits_possible.pop())
+      actions[naction++] = Action(card, m_array_location[card.get_id()], card.suit() + 12 );
+
     for (int pile=0; pile<TABLEAU_SIZE; ++pile) {
       bits_possible = bits_from & m_array_bits_pile_next[pile];
       for (Card card=bits_possible.pop(); card; card=bits_possible.pop())
 	actions[naction++] = Action(card, m_array_location[card.get_id()], pile); }
       
-    bits_possible = bits_from & m_bits_homecell_next;
-    for (Card card=bits_possible.pop(); card; card=bits_possible.pop())
-      actions[naction++] = Action(card, m_array_location[card.get_id()], card.suit() + 12 );
-
     if (m_ncard_freecell < FREECELL_SIZE)
       for (int pile=0; pile<TABLEAU_SIZE; ++pile)
 	if (m_array_pile_top[pile])
