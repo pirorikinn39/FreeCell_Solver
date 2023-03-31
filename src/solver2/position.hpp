@@ -20,7 +20,7 @@
 #define MAX_F_COST_52F (DECK_SIZE * 2)
 
 class Position : public Position_base {
-  class Entry_tt {
+  class Entry_TT_52f {
 #ifdef TEST_ZKEY
     Position_row m_row_data;
 #endif
@@ -29,8 +29,8 @@ class Position : public Position_base {
     Card m_candidate_homecell_next[HOMECELL_SIZE];
 
   public:
-    Entry_tt(int lower_bound, const Position_row& row_data,
-	     const Card* candidate_homecell_next) noexcept : 
+    Entry_TT_52f(int lower_bound, const Position_row& row_data,
+		 const Card* candidate_homecell_next) noexcept : 
 #ifdef TEST_ZKEY
       m_row_data(row_data), m_lower_bound(lower_bound), m_is_solved(false)
 #else
@@ -61,7 +61,7 @@ class Position : public Position_base {
   };
 
 private:
-  unordered_map<uint64_t, Position::Entry_tt> m_tt;
+  unordered_map<uint64_t, Entry_TT_52f> m_tt;
   Bits m_bits_deadlocked;
   int m_ncard_deadlocked;
   unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE];
@@ -75,16 +75,16 @@ private:
 
 public:
   explicit Position(int) noexcept;
-  int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
-  uint64_t m_tt_size() const noexcept { return m_tt.size(); }
   int solve_52f(int bound_max) noexcept;
-  int dfstt1(int, Action*, Entry_tt&) noexcept;
+  int dfstt1(int, Action*, Entry_TT_52f&) noexcept;
   int move_auto(Action*) noexcept;
   int move_auto_52f(Action*) noexcept;
   void unmake_n(const Action* path, int n) noexcept {
     for (int i=1; i<=n; ++i) unmake(*(path - i)); }
   void make(const Action&) noexcept;
   void unmake(const Action&) noexcept;
+  int calc_h1_cost() const noexcept { return ncard_rest() + m_ncard_deadlocked; }
+  uint64_t m_tt_size() const noexcept { return m_tt.size(); }
 };
 
 #endif

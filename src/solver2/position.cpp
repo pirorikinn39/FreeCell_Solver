@@ -1,7 +1,7 @@
 #include <climits>
 #include "position.hpp"
 
-bool Position::Entry_tt::ok() const noexcept {
+bool Position::Entry_TT_52f::ok() const noexcept {
   try {
 #ifdef TEST_ZKEY
     if (! m_row_data.ok()) throw E(__LINE__);
@@ -105,34 +105,35 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first; }
 
 int Position::solve_52f(int bound_max) noexcept {
-    Action path[MAX_F_COST_52F];
-    int naction = move_auto_52f(path);
+  assert(0 <= bound_max);
+  Action path[MAX_F_COST_52F];
+  int naction = move_auto_52f(path);
     
-    int bound_52f;
-    auto it = m_tt.find(m_zobrist_key);
-    if (it != m_tt.end()) {
-      assert(it->second.ok());
-      it->second.test_zobrist_key(get_row_data());
-      bound_52f = it->second.get_lower_bound(); }
-    else {
-      Card candidate_homecell_next[HOMECELL_SIZE];
-      bound_52f = calc_h_cost_52f(candidate_homecell_next);
-      it = m_tt.emplace(piecewise_construct,
-			forward_as_tuple(m_zobrist_key),
-			forward_as_tuple(bound_52f, get_row_data(),
-					 candidate_homecell_next)).first; }
-    int th = bound_52f;
-    if (! it->second.is_solved()) {
-      m_is_solved = false;
-      while (naction + th < bound_max) {
-	th = dfstt1(th, path + naction, it->second);
-	if (m_is_solved) break; } }
+  int bound_52f;
+  auto it = m_tt.find(m_zobrist_key);
+  if (it != m_tt.end()) {
+    assert(it->second.ok());
+    it->second.test_zobrist_key(get_row_data());
+    bound_52f = it->second.get_lower_bound(); }
+  else {
+    Card candidate_homecell_next[HOMECELL_SIZE];
+    bound_52f = calc_h_cost_52f(candidate_homecell_next);
+    it = m_tt.emplace(piecewise_construct,
+		      forward_as_tuple(m_zobrist_key),
+		      forward_as_tuple(bound_52f, get_row_data(),
+				       candidate_homecell_next)).first; }
+  int th = bound_52f;
+  if (! it->second.is_solved()) {
+    m_is_solved = false;
+    while (naction + th < bound_max) {
+      th = dfstt1(th, path + naction, it->second);
+      if (m_is_solved) break; } }
+  
+  unmake_n(path + naction, naction);
+  
+  return naction + th; }
 
-    unmake_n(path + naction, naction);
-    
-    return naction + th; }
-
-int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noexcept {
+int Position::dfstt1(int th, Action* path, Entry_TT_52f& entry_parent) noexcept {
   if (ncard_rest() == 0) {
     m_is_solved = true;
     entry_parent.set_solved();
@@ -140,14 +141,14 @@ int Position::dfstt1(int th, Action* path, Position::Entry_tt& entry_parent) noe
     return 0; }
   
   int new_bound = UCHAR_MAX;
-  int ncard_rest_and_deadlocked = ncard_rest() + get_ncard_deadlocked();
+  int h1_cost = calc_h1_cost();
   const Card* candidate_homecell_next_parent = entry_parent.get_candidate_homecell_next();
   assert(candidate_homecell_next_parent[0].is_card());
   for (int i=0; i<N_SUIT; ++i) {
     Card next = candidate_homecell_next_parent[i];
     if (! next) break;
 
-    int th_estimate = ncard_rest_and_deadlocked + calc_nabove_not_deadlocked(next);
+    int th_estimate = h1_cost + calc_nabove_not_deadlocked(next);
     if (th_estimate >= new_bound) break;
     
     /* break more aggressively
