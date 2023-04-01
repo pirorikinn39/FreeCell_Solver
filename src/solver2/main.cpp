@@ -1,16 +1,10 @@
 #include <iostream>
-#include <climits>
-#include <fstream>
-#include <algorithm>
-#include <chrono>
-#include <string>
-#include <sstream>
-#include <random>
-#include <forward_list>
-#include <unistd.h>
-#include <string.h>
-#include <stdio.h>
+#include <exception>
 #include "solve.hpp"
+using std::cout;
+using std::cerr;
+using std::endl;
+using std::terminate;
 
 int main(int argc, char* argv[]) {
 	if(argc != 2) {
@@ -50,8 +44,9 @@ int main(int argc, char* argv[]) {
 		cout << "couldn't solve" << endl;
 	}
 	else {
-		Solve* solve = new Solve(game_id);
-		delete solve;
+	  solve(game_id);
+	  //Solve* solve = new Solve(game_id);
+	  //delete solve;
 	}
 	cout << endl;
 	return 0;

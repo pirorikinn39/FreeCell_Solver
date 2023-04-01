@@ -17,51 +17,51 @@
 #include "../common/bits.hpp"
 
 
-#define MAX_H_COST (DECK_SIZE * 2)
+#define MAX_F_COST_52F (DECK_SIZE * 2)
 
 class Position : public Position_base {
-  class Entry_tt {
+  class Entry_TT_52f {
 #ifdef TEST_ZKEY
     Position_row m_row_data;
 #endif
-    unsigned char m_h_cost;
+    unsigned char m_lower_bound;
     bool m_is_solved;
     Card m_candidate_homecell_next[HOMECELL_SIZE];
 
   public:
-    Entry_tt(int h_cost, const Position_row& row_data,
-	     const Card* candidate_homecell_next) noexcept : 
+    Entry_TT_52f(int lower_bound, const Position_row& row_data,
+		 const Card* candidate_homecell_next) noexcept : 
 #ifdef TEST_ZKEY
-      m_row_data(row_data), m_h_cost(h_cost), m_is_solved(false)
+      m_row_data(row_data), m_lower_bound(lower_bound), m_is_solved(false)
 #else
-      m_h_cost(h_cost), m_is_solved(false)
+      m_lower_bound(lower_bound), m_is_solved(false)
 #endif
     {
       copy_n(candidate_homecell_next, N_SUIT, m_candidate_homecell_next);
       assert(ok()); }
-    void set_h_cost(int h_cost) noexcept {
-      assert(0 <= h_cost && h_cost <= MAX_H_COST);
-      m_h_cost = h_cost; }
+    void update_lower_bound(int lower_bound) noexcept {
+      assert(m_lower_bound <= lower_bound && lower_bound <= MAX_F_COST_52F);
+      m_lower_bound = lower_bound; }
     void set_solved() noexcept {
       assert(! m_is_solved);
       m_is_solved = true; }
     
-    int get_h_cost() const noexcept { return m_h_cost; }
+    int get_lower_bound() const noexcept { return m_lower_bound; }
     bool is_solved() const noexcept { return m_is_solved; }
     const Card* get_candidate_homecell_next() const noexcept {
       return m_candidate_homecell_next; }
-    bool test_zobrist_key(const Position_row& row_data) const noexcept {
+    void test_zobrist_key(const Position_row& row_data) const noexcept {
 #ifdef TEST_ZKEY
-      return m_row_data == row_data;
-#else
-      return true;
+      if (m_row_data == row_data) return;
+      cerr << "Zobrist Key Conflict" << endl;
+      terminate();
 #endif
     }
     bool ok() const noexcept;
   };
 
 private:
-  unordered_map<uint64_t, Position::Entry_tt> m_tt;
+  unordered_map<uint64_t, Entry_TT_52f> m_tt;
   Bits m_bits_deadlocked;
   int m_ncard_deadlocked;
   unsigned char m_array_nbelow_not_deadlocked[DECK_SIZE];
@@ -71,20 +71,20 @@ private:
   void one_suit_analysis(int &, Bits &, unsigned char *) const noexcept;
   int calc_nabove_not_deadlocked(const Card& card) const noexcept;
   int move_to_homecell(const Card&, Action*) noexcept;
+  int calc_h_cost_52f(Card*) noexcept;
 
 public:
   explicit Position(int) noexcept;
-  int get_ncard_deadlocked() const noexcept { return m_ncard_deadlocked; }
-  int calc_h_cost_52f(Card*) noexcept;
-  uint64_t m_tt_size() const noexcept { return m_tt.size(); }
-  int calc_h_cost() noexcept;
-  int dfstt1(int, Action*, Entry_tt&) noexcept;
+  int solve_52f(int bound_max_interest) noexcept;
+  int dfstt1(int, Action*, Entry_TT_52f&) noexcept;
   int move_auto(Action*) noexcept;
   int move_auto_52f(Action*) noexcept;
   void unmake_n(const Action* path, int n) noexcept {
     for (int i=1; i<=n; ++i) unmake(*(path - i)); }
   void make(const Action&) noexcept;
   void unmake(const Action&) noexcept;
+  int calc_h1_cost() const noexcept { return ncard_rest() + m_ncard_deadlocked; }
+  uint64_t m_tt_size() const noexcept { return m_tt.size(); }
 };
 
 #endif
