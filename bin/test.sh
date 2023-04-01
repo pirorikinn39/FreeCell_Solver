@@ -18,8 +18,6 @@ then
     PROGRAM_1b='{print $1 "," $2 "," $3 "," $4}'
     PROGRAM_2a='{print $1 "," $2 "," $3 "," $4 "," $5}'
     PROGRAM_2b='{print $1 "," $2 "," $3 "," $5 "," $6}'
-    PROGRAM_2a='{print $1 "," $2 "," $3 "," $4}'
-    PROGRAM_2b='{print $1 "," $2 "," $3 "," $5}'
 else
     PROGRAM_1a='{print $1 "," $2}'
     PROGRAM_1b='{print $1 "," $2}'
