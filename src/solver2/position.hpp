@@ -75,7 +75,7 @@ private:
 
 public:
   explicit Position(int) noexcept;
-  int solve_52f(int bound_max) noexcept;
+  int solve_52f(int bound_max_interest) noexcept;
   int dfstt1(int, Action*, Entry_TT_52f&) noexcept;
   int move_auto(Action*) noexcept;
   int move_auto_52f(Action*) noexcept;

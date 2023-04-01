@@ -104,15 +104,14 @@ int Position::calc_h_cost_52f(Card* candidate_homecell_next) noexcept {
   
   return m_ncard_freecell + m_ncard_tableau + m_ncard_deadlocked + a[0].first; }
 
-int Position::solve_52f(int bound_max) noexcept {
-  assert(0 <= bound_max);
+int Position::solve_52f(int bound_max_interest) noexcept {
+  assert(0 <= bound_max_interest);
   Action path[MAX_F_COST_52F];
-  int naction = move_auto_52f(path);
+  int g_cost = move_auto_52f(path);
     
   int bound_52f;
   auto it = m_tt.find(m_zobrist_key);
   if (it != m_tt.end()) {
-    assert(it->second.ok());
     it->second.test_zobrist_key(get_row_data());
     bound_52f = it->second.get_lower_bound(); }
   else {
@@ -122,16 +121,17 @@ int Position::solve_52f(int bound_max) noexcept {
 		      forward_as_tuple(m_zobrist_key),
 		      forward_as_tuple(bound_52f, get_row_data(),
 				       candidate_homecell_next)).first; }
+  assert(it->second.ok());
   int th = bound_52f;
   if (! it->second.is_solved()) {
     m_is_solved = false;
-    while (naction + th < bound_max) {
-      th = dfstt1(th, path + naction, it->second);
+    while (g_cost + th < bound_max_interest) {
+      th = dfstt1(th, path + g_cost, it->second);
       if (m_is_solved) break; } }
   
-  unmake_n(path + naction, naction);
+  unmake_n(path + g_cost, g_cost);
   
-  return naction + th; }
+  return g_cost + th; }
 
 int Position::dfstt1(int th, Action* path, Entry_TT_52f& entry_parent) noexcept {
   if (ncard_rest() == 0) {
@@ -162,7 +162,6 @@ int Position::dfstt1(int th, Action* path, Entry_TT_52f& entry_parent) noexcept 
 
     auto it = m_tt.find(m_zobrist_key);
     if (it != m_tt.end()) {
-      assert(it->second.ok());
       it->second.test_zobrist_key(get_row_data());
       bound_child = it->second.get_lower_bound(); }
     else {
@@ -172,7 +171,7 @@ int Position::dfstt1(int th, Action* path, Entry_TT_52f& entry_parent) noexcept 
 			forward_as_tuple(m_zobrist_key),
 			forward_as_tuple(bound_child, get_row_data(),
 					 candidate_homecell_next_child)).first; }
-
+    assert(it->second.ok());
     assert(cost + bound_child >= th);
     // assert( 'length of an optimal solution from this parent' >= th );
     if (cost + bound_child <= th && it->second.is_solved()) {
