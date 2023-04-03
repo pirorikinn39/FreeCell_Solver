@@ -5,8 +5,8 @@ TARGETS=(solver1 solver2)
 for arg in $@
 do
     case $arg in
-	solver1 ) TARGETS=solver1; OPT+=($arg);;
-	solver2 ) TARGETS=solver2; OPT+=($arg);;
+	solver1 ) TARGETS=(solver1); OPT+=($arg);;
+	solver2 ) TARGETS=(solver2); OPT+=($arg);;
 	full )    FULL=yes;;
 	* )       OPT+=($arg);;
     esac

@@ -5,8 +5,8 @@ TARGETS=(solver1 solver2)
 for arg in $@
 do
     case $arg in
-	solver1 )   TARGETS=solver1;;
-	solver2 )   TARGETS=solver2;;
+	solver1 )   TARGETS=(solver1);;
+	solver2 )   TARGETS=(solver2);;
 	debug )     DEBUG=" -g";;
 	test-zkey ) TEST_ZKEY=" -DTEST_ZKEY";;
 	* ) echo "bad argument: $arg" >&2; exit 1;;
