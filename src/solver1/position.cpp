@@ -129,112 +129,100 @@ void Position::delete_cycle(const Card& card) noexcept {
 
 void Position::add_cycle(const Card& card1) noexcept {
   assert(card1.is_card());
-  assert(m_array_location[card1.get_id()] < TABLEAU_SIZE);
-    Bits bits_tableau = Bits::full() ^ m_bits_homecell ^ m_bits_freecell;
-    if (! (Bits::same_suit_small_rank(card1) & bits_tableau))
-        return;
 
-    if (Bits::same_suit_small_rank(card1) & m_array_bits_pile_card[m_array_location[card1.get_id()]]) {
-        m_array_single_suit_cycle[(int)m_nsingle_suit_cycle++] = card1;
-        m_bits_single_suit_cycle.set_bit(card1);
-        assert(m_nsingle_suit_cycle <= MAX_SINGLE_SUIT_CYCLE_SIZE);
-        return;
-    }
+  int pile1 = m_array_location[card1.get_id()];
+  assert(pile1 < TABLEAU_SIZE);
+  assert(m_array_pile_top[pile1] == card1);
+  
+  Bits bits_tableau = Bits::full() ^ m_bits_homecell ^ m_bits_freecell;
+  if (! (Bits::same_suit_small_rank(card1) & bits_tableau))  return;
 
-    int suit_card1 = card1.suit();
-    Bits bits_na_to_card2;
-    for (Card prev_card1=card1.prev(); prev_card1; prev_card1=prev_card1.prev()) {
-        if (m_bits_homecell.is_set_bit(prev_card1))
-            break;
-        if (m_bits_freecell.is_set_bit(prev_card1))
-            continue;
-        int pile2 = m_array_location[prev_card1.get_id()];
+  if (Bits::same_suit_small_rank(card1) & m_array_bits_pile_card[pile1]) {
+    m_array_single_suit_cycle[m_nsingle_suit_cycle++] = card1;
+    m_bits_single_suit_cycle.set_bit(card1);
+    assert(m_nsingle_suit_cycle <= MAX_SINGLE_SUIT_CYCLE_SIZE);
+    return; }
 
-        for (Card card2=m_array_pile_top[pile2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
-            if (bits_na_to_card2.is_set_bit(card2))
-                continue;
-            if (Bits(card2) & m_bits_single_suit_cycle)
-                continue;
-            if (card2.suit() == suit_card1)
-                continue;
-            bits_na_to_card2.set_bit(card2);
-            Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
-            for (Card below1=m_row_data.get_below(card1); below1.is_card(); below1=m_row_data.get_below(below1)) {
-                if (! (Bits(below1) & bits_same_suit_small_rank_card2))
-                    continue;
-                m_array_two_suit_cycle[m_ntwo_suit_cycle++] = Two_suit_cycle(card1, card2, true);
-                ++m_count_in_two_suit_cycle[card1.get_id()];
-                ++m_count_in_two_suit_cycle[card2.get_id()];
-                break;
-            }
-        }
-    }
-    assert(m_ntwo_suit_cycle <= MAX_TWO_SUIT_CYCLE_SIZE);
-}
+  Bits bits_na_to_card2 = m_bits_single_suit_cycle | Bits::same_suit(card1.suit());
+  for (Card prev_card1=card1.prev(); prev_card1; prev_card1=prev_card1.prev()) {
+    if (m_bits_homecell.is_set_bit(prev_card1)) break;
+    if (m_bits_freecell.is_set_bit(prev_card1)) continue;
+    int pile2 = m_array_location[prev_card1.get_id()];
+    
+    for (Card card2=m_array_pile_top[pile2]; card2!=prev_card1;
+	 card2=m_row_data.get_below(card2)) {
+      if (bits_na_to_card2.is_set_bit(card2)) continue;
+      bits_na_to_card2.set_bit(card2);
+      if (! (Bits::same_suit_small_rank(card2) & m_array_bits_pile_card[pile1])) continue;
+      m_array_two_suit_cycle[m_ntwo_suit_cycle++] = Two_suit_cycle(card1, card2, true);
+      m_count_in_two_suit_cycle[card1.get_id()] += 1;
+      m_count_in_two_suit_cycle[card2.get_id()] += 1; } }
+  
+  assert(m_ntwo_suit_cycle <= MAX_TWO_SUIT_CYCLE_SIZE); }
 
 int Position::calc_h_cost() noexcept {
-    Bits bits_decided;
-    int size = 0;
-    int index; 
+  Bits bits_decided;
+  int size = 0;
+  int index; 
 
-    for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
-        if (m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] == 1) {
-            m_array_two_suit_cycle[i].clear_target();
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
-            if (! (bits_decided & (Bits(m_array_two_suit_cycle[i].get_card1()) | Bits(m_array_two_suit_cycle[i].get_card2())))) {
-                ++size;
-                bits_decided.set_bit(m_array_two_suit_cycle[i].get_card2());
-            }
-        }
-        else if (m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] == 1) {
-            m_array_two_suit_cycle[i].clear_target();
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
-            if (! (bits_decided & (Bits(m_array_two_suit_cycle[i].get_card1()) | Bits(m_array_two_suit_cycle[i].get_card2())))) {
-                ++size;
-                bits_decided.set_bit(m_array_two_suit_cycle[i].get_card1());
-            }
-        }
+  for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
+    if (m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] == 1) {
+      m_array_two_suit_cycle[i].clear_target();
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
+      if (! (bits_decided & (Bits(m_array_two_suit_cycle[i].get_card1()) | Bits(m_array_two_suit_cycle[i].get_card2())))) {
+	++size;
+	bits_decided.set_bit(m_array_two_suit_cycle[i].get_card2());
+      }
     }
-
-    for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
-        if (! m_array_two_suit_cycle[i].get_is_target())
-            continue;
-        if ((bits_decided & Bits(m_array_two_suit_cycle[i].get_card1())) || (bits_decided & Bits(m_array_two_suit_cycle[i].get_card2()))) {
-            m_array_two_suit_cycle[i].clear_target();
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
-        }
+    else if (m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] == 1) {
+      m_array_two_suit_cycle[i].clear_target();
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
+      if (! (bits_decided & (Bits(m_array_two_suit_cycle[i].get_card1()) | Bits(m_array_two_suit_cycle[i].get_card2())))) {
+	++size;
+	bits_decided.set_bit(m_array_two_suit_cycle[i].get_card1());
+      }
     }
+  }
 
-    for (index=0; index<(int)m_ntwo_suit_cycle; ++index)
-        if (m_array_two_suit_cycle[index].get_is_target())
-            break;
-    if (index == (int)m_ntwo_suit_cycle) {
-        for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
-            if (! m_array_two_suit_cycle[i].get_is_target()) {
-                m_array_two_suit_cycle[i].set_target();
-                m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] += 1;
-                m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] += 1;
-            }
-        }
-        size += ncard_rest() + m_nsingle_suit_cycle;
-        assert((size >= 0) && (size <= 256));
-        return size;
+  for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
+    if (! m_array_two_suit_cycle[i].get_is_target())
+      continue;
+    if ((bits_decided & Bits(m_array_two_suit_cycle[i].get_card1())) || (bits_decided & Bits(m_array_two_suit_cycle[i].get_card2()))) {
+      m_array_two_suit_cycle[i].clear_target();
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
     }
-    size += dfs(index, 0, DECK_SIZE);
-
+  }
+  
+  for (index=0; index<(int)m_ntwo_suit_cycle; ++index)
+    if (m_array_two_suit_cycle[index].get_is_target())
+      break;
+  if (index == (int)m_ntwo_suit_cycle) {
     for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
-        if (! m_array_two_suit_cycle[i].get_is_target()) {
-            m_array_two_suit_cycle[i].set_target();
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] += 1;
-            m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] += 1;
-        }
+      if (! m_array_two_suit_cycle[i].get_is_target()) {
+	m_array_two_suit_cycle[i].set_target();
+	m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] += 1;
+	m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] += 1;
+      }
     }
     size += ncard_rest() + m_nsingle_suit_cycle;
-    assert((size >= 0) && (size <= 255));
+    assert((size >= 0) && (size <= 256));
     return size;
+  }
+  size += dfs(index, 0, DECK_SIZE);
+  
+  for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
+    if (! m_array_two_suit_cycle[i].get_is_target()) {
+      m_array_two_suit_cycle[i].set_target();
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] += 1;
+      m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] += 1;
+    }
+  }
+  size += ncard_rest() + m_nsingle_suit_cycle;
+  assert((size >= 0) && (size <= 255));
+  return size;
 }
 
 int Position::dfs(int index, int size, int th) noexcept {
