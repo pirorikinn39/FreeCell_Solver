@@ -51,17 +51,16 @@ class Position : public Position_base {
 
 public:
   explicit Position(int) noexcept;
-    int get_nsingle_suit_cycle() const noexcept { return m_nsingle_suit_cycle; }
-    int get_ntwo_suit_cycle() const noexcept { return m_ntwo_suit_cycle; }
-    void find_cycle() noexcept;
-    void delete_cycle(const Card&) noexcept;
-    void add_cycle(const Card&) noexcept;
-    void check_cycle() const noexcept;
-    int calc_h_cost() noexcept;
-    int dfs(int, int, int) noexcept;
-    int move_auto(Action*) noexcept;
-    void make(const Action&) noexcept;
-    void unmake(const Action&) noexcept;
+  int get_nsingle_suit_cycle() const noexcept { return m_nsingle_suit_cycle; }
+  int get_ntwo_suit_cycle() const noexcept { return m_ntwo_suit_cycle; }
+  void delete_cycle(const Card&) noexcept;
+  void add_cycle(const Card&) noexcept;
+  void check_cycle() const noexcept;
+  int calc_h_cost() noexcept;
+  int dfs(int, int, int) noexcept;
+  int move_auto(Action*) noexcept;
+  void make(const Action&) noexcept;
+  void unmake(const Action&) noexcept;
 };
   
 
