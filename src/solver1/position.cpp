@@ -105,37 +105,31 @@ Position::Position(int seed) noexcept : Position_base::Position_base(seed),
   assert(ok()); }
 
 void Position::delete_cycle(const Card& card) noexcept {
+  assert(card.is_card());
   int tail = m_nsingle_suit_cycle - 1;
   for (int i=m_nsingle_suit_cycle-1; i>=0; --i) {
-    if (m_array_single_suit_cycle[i] != card)
-      continue;
+    if (m_array_single_suit_cycle[i] != card) continue;
     m_bits_single_suit_cycle.clear_bit(card);
-    if (i < tail)
-      m_array_single_suit_cycle[i] = m_array_single_suit_cycle[tail];
-    --tail;
-    --m_nsingle_suit_cycle;
-    break;
-  }
+    m_array_single_suit_cycle[i] = m_array_single_suit_cycle[tail--];
+    m_nsingle_suit_cycle -= 1;
+    break; }
   assert(m_nsingle_suit_cycle >= 0);
   
   m_count_in_two_suit_cycle[card.get_id()] = 0;
   tail = m_ntwo_suit_cycle - 1;
   for (int i=m_ntwo_suit_cycle-1; i>=0; --i) {
-    if (m_array_two_suit_cycle[i].get_card1() == card)
-      --m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()];
-    else if (m_array_two_suit_cycle[i].get_card2() == card)
-      --m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()];
-    else
-      continue;
-    if (i < tail)
-      m_array_two_suit_cycle[i] = m_array_two_suit_cycle[tail];
-    --tail;
-    --m_ntwo_suit_cycle;
-  }
-  assert(m_ntwo_suit_cycle >= 0);
-}
+    const Card& card1 = m_array_two_suit_cycle[i].get_card1();
+    const Card& card2 = m_array_two_suit_cycle[i].get_card2();
+    if      (card1 == card) m_count_in_two_suit_cycle[card2.get_id()] -= 1;
+    else if (card2 == card) m_count_in_two_suit_cycle[card1.get_id()] -= 1;
+    else continue;
+    m_array_two_suit_cycle[i] = m_array_two_suit_cycle[tail--];
+    m_ntwo_suit_cycle -= 1; }
+  assert(m_ntwo_suit_cycle >= 0); }
 
 void Position::add_cycle(const Card& card1) noexcept {
+  assert(card1.is_card());
+  assert(m_array_location[card1.get_id()] < TABLEAU_SIZE);
     Bits bits_tableau = Bits::full() ^ m_bits_homecell ^ m_bits_freecell;
     if (! (Bits::same_suit_small_rank(card1) & bits_tableau))
         return;
