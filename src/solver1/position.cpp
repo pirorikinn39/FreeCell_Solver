@@ -63,11 +63,7 @@ bool Position::correct() const noexcept {
     for (int i=0; i<ntwo_suit_cycle; ++i) {
       int check = 0; // delete it 
       for (int j=0; j<(int)m_ntwo_suit_cycle; ++j) {
-	if ((array_two_suit_cycle[i].get_card1() == m_array_two_suit_cycle[j].get_card1()) && (array_two_suit_cycle[i].get_card2() == m_array_two_suit_cycle[j].get_card2())) {
-	  check = 1;
-	  break; // provide method
-	}
-	else if ((array_two_suit_cycle[i].get_card1() == m_array_two_suit_cycle[j].get_card2()) && (array_two_suit_cycle[i].get_card1() == m_array_two_suit_cycle[j].get_card2())) {
+	if (array_two_suit_cycle[i] == m_array_two_suit_cycle[j]) {
 	  check = 1;
 	  break;
 	}
@@ -226,7 +222,7 @@ int Position::calc_h_cost() noexcept {
 
     for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
         if (m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] == 1) {
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
             if (! (bits_decided & (Bits(m_array_two_suit_cycle[i].get_card1()) | Bits(m_array_two_suit_cycle[i].get_card2())))) {
@@ -235,7 +231,7 @@ int Position::calc_h_cost() noexcept {
             }
         }
         else if (m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] == 1) {
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
             if (! (bits_decided & (Bits(m_array_two_suit_cycle[i].get_card1()) | Bits(m_array_two_suit_cycle[i].get_card2())))) {
@@ -249,7 +245,7 @@ int Position::calc_h_cost() noexcept {
         if (! m_array_two_suit_cycle[i].get_is_target())
             continue;
         if ((bits_decided & Bits(m_array_two_suit_cycle[i].get_card1())) || (bits_decided & Bits(m_array_two_suit_cycle[i].get_card2()))) {
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
         }
@@ -261,7 +257,7 @@ int Position::calc_h_cost() noexcept {
     if (index == (int)m_ntwo_suit_cycle) {
         for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
             if (! m_array_two_suit_cycle[i].get_is_target()) {
-                m_array_two_suit_cycle[i].set_is_target(true);
+                m_array_two_suit_cycle[i].set_target();
                 m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] += 1;
                 m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] += 1;
             }
@@ -274,7 +270,7 @@ int Position::calc_h_cost() noexcept {
 
     for (int i=0; i<(int)m_ntwo_suit_cycle; ++i) {
         if (! m_array_two_suit_cycle[i].get_is_target()) {
-            m_array_two_suit_cycle[i].set_is_target(true);
+            m_array_two_suit_cycle[i].set_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] += 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] += 1;
         }
@@ -304,7 +300,7 @@ int Position::dfs(int index, int size, int th) noexcept {
             if ((m_array_two_suit_cycle[i].get_card1() != card2) && (m_array_two_suit_cycle[i].get_card2() != card2))
                 continue;
             array_index_deleted_cycle[nindex_deleted_cycle++] = i;
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
         }
@@ -313,7 +309,7 @@ int Position::dfs(int index, int size, int th) noexcept {
                 break;
         th = dfs(new_index, size + 1, th);
         for (int i=0; i<nindex_deleted_cycle; ++i) {
-            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_is_target(true);
+            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card1().get_id()] += 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card2().get_id()] += 1;
         }        
@@ -325,7 +321,7 @@ int Position::dfs(int index, int size, int th) noexcept {
             if ((m_array_two_suit_cycle[i].get_card1() != card1) && (m_array_two_suit_cycle[i].get_card2() != card1))
                 continue;
             array_index_deleted_cycle[nindex_deleted_cycle++] = i;
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
         }
@@ -334,7 +330,7 @@ int Position::dfs(int index, int size, int th) noexcept {
                 break;
         th = dfs(new_index, size + 1, th);
         for (int i=0; i<nindex_deleted_cycle; ++i) {
-            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_is_target(true);
+            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card1().get_id()] += 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card2().get_id()] += 1;
         }
@@ -346,7 +342,7 @@ int Position::dfs(int index, int size, int th) noexcept {
             if ((m_array_two_suit_cycle[i].get_card1() != card1) && (m_array_two_suit_cycle[i].get_card2() != card1))
                 continue;
             array_index_deleted_cycle[nindex_deleted_cycle++] = i;
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
         }
@@ -355,7 +351,7 @@ int Position::dfs(int index, int size, int th) noexcept {
                 break;
         th = dfs(new_index, size + 1, th);
         for (int i=0; i<nindex_deleted_cycle; ++i) {
-            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_is_target(true);
+            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card1().get_id()] += 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card2().get_id()] += 1;
         }
@@ -367,7 +363,7 @@ int Position::dfs(int index, int size, int th) noexcept {
             if ((m_array_two_suit_cycle[i].get_card1() != card2) && (m_array_two_suit_cycle[i].get_card2() != card2))
                 continue;
             array_index_deleted_cycle[nindex_deleted_cycle++] = i;
-            m_array_two_suit_cycle[i].set_is_target(false);
+            m_array_two_suit_cycle[i].clear_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card1().get_id()] -= 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[i].get_card2().get_id()] -= 1;
         }
@@ -376,7 +372,7 @@ int Position::dfs(int index, int size, int th) noexcept {
                 break;
         th = dfs(new_index, size + 1, th);
         for (int i=0; i<nindex_deleted_cycle; ++i) {
-            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_is_target(true);
+            m_array_two_suit_cycle[array_index_deleted_cycle[i]].set_target();
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card1().get_id()] += 1;
             m_count_in_two_suit_cycle[m_array_two_suit_cycle[array_index_deleted_cycle[i]].get_card2().get_id()] += 1;
         }
