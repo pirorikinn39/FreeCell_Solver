@@ -40,28 +40,19 @@ inline bool operator==(const Two_suit_cycle& c1, const Two_suit_cycle& c2) noexc
 	  || (c1.get_card2() == c2.get_card1() && c1.get_card1() == c2.get_card2())); }
 
 class Position : public Position_base {
-public:
-
-private:
-    Card m_array_single_suit_cycle[MAX_SINGLE_SUIT_CYCLE_SIZE];
-    unsigned char m_nsingle_suit_cycle;
-    Bits m_bits_single_suit_cycle;
-    Two_suit_cycle m_array_two_suit_cycle[MAX_TWO_SUIT_CYCLE_SIZE];
-    unsigned int m_ntwo_suit_cycle;
-    unsigned char m_count_in_two_suit_cycle[DECK_SIZE];
-
-  bool correct() const noexcept;
+  Bits m_bits_single_suit_cycle;
+  int m_nsingle_suit_cycle;
+  int m_ntwo_suit_cycle;
+  Card m_array_single_suit_cycle[MAX_SINGLE_SUIT_CYCLE_SIZE];
+  Two_suit_cycle m_array_two_suit_cycle[MAX_TWO_SUIT_CYCLE_SIZE];
+  unsigned char m_count_in_two_suit_cycle[DECK_SIZE];
+  
+  bool ok() const noexcept;
 
 public:
   explicit Position(int) noexcept;
-    int get_nsingle_suit_cycle() const noexcept {
-        assert(correct());
-        return m_nsingle_suit_cycle;
-    };
-    int get_ntwo_suit_cycle() const noexcept {
-        assert(correct());
-        return m_ntwo_suit_cycle;
-    };
+    int get_nsingle_suit_cycle() const noexcept { return m_nsingle_suit_cycle; }
+    int get_ntwo_suit_cycle() const noexcept { return m_ntwo_suit_cycle; }
     void find_cycle() noexcept;
     void delete_cycle(const Card&) noexcept;
     void add_cycle(const Card&) noexcept;

@@ -1,6 +1,6 @@
 #include "position.hpp"
 
-bool Position::correct() const noexcept {
+bool Position::ok() const noexcept {
   if (! Position_base::ok()) return false;
   try { 
     Card array_single_suit_cycle[MAX_SINGLE_SUIT_CYCLE_SIZE];
@@ -8,70 +8,59 @@ bool Position::correct() const noexcept {
     Bits bits_single_suit_cycle;
     int nsingle_suit_cycle = 0;
     int ntwo_suit_cycle = 0;
-    unsigned char count_in_two_suit_cycle[DECK_SIZE];
+    unsigned char count_in_two_suit_cycle[DECK_SIZE] = {0};
 
-    bits_single_suit_cycle.clear();
     for (int pile=0; pile<TABLEAU_SIZE; ++pile) {
       for (Card card=m_array_pile_top[pile]; card.is_card();
 	   card=m_row_data.get_below(card)) {
-	Bits bits_same_suit_small_rank = Bits::same_suit_small_rank(card);
 	for (Card below=m_row_data.get_below(card); below.is_card();
 	     below=m_row_data.get_below(below)) {
-	  if (! (Bits(below) & bits_same_suit_small_rank)) continue; // is set
+	  if (! Bits::same_suit_small_rank(card).is_set_bit(below)) continue;
 	  array_single_suit_cycle[nsingle_suit_cycle++] = card;
 	  bits_single_suit_cycle.set_bit(card);
 	  break; } } }
     if (nsingle_suit_cycle != m_nsingle_suit_cycle) throw E(__LINE__);
     
     for (int i=0; i<nsingle_suit_cycle; ++i) {
-      int check = 0; // delete
-      for (int j=0; j<m_nsingle_suit_cycle; ++j) {
-	if (array_single_suit_cycle[i] == m_array_single_suit_cycle[j]) {
-	  check = 1;
-	  break; } }
-      if (! check) throw E(__LINE__); }
+      int j;
+      for (j=0; j<m_nsingle_suit_cycle; ++j) {
+	if (array_single_suit_cycle[i] == m_array_single_suit_cycle[j]) break; }
+      if (j == m_nsingle_suit_cycle) throw E(__LINE__); }
     
     ntwo_suit_cycle = 0;
-    memset(count_in_two_suit_cycle, 0, sizeof(count_in_two_suit_cycle));
-    for (int column1=0; column1<TABLEAU_SIZE; ++column1) { // size-1 ?
-      for (Card card1=m_array_pile_top[column1]; card1.is_card(); card1=m_row_data.get_below(card1)) {
-	if (Bits(card1) & bits_single_suit_cycle) continue;// is set
-	int suit_card1 = card1.suit();
-	Bits bits_explored_card2; // change name
+    for (int pile1=0; pile1<TABLEAU_SIZE-1; ++pile1) {
+      for (Card card1=m_array_pile_top[pile1]; card1.is_card();
+	   card1=m_row_data.get_below(card1)) {
+	if (bits_single_suit_cycle.is_set_bit(card1)) continue;
+	Bits bits_na_to_card2 = bits_single_suit_cycle | Bits::same_suit(card1.suit());
 	for (Card prev_card1=card1.prev(); prev_card1; prev_card1=prev_card1.prev()) {
 	  if (m_bits_homecell.is_set_bit(prev_card1)) break;
 	  if (m_bits_freecell.is_set_bit(prev_card1)) continue;
-	  int column2 = m_array_location[prev_card1.get_id()];
-	  if (column2 < column1) continue; // <= ?
-	  for (Card card2=m_array_pile_top[column2]; card2!=prev_card1;
+	  int pile2 = m_array_location[prev_card1.get_id()];
+	  if (pile2 <= pile1) continue;
+	  for (Card card2=m_array_pile_top[pile2]; card2!=prev_card1;
 	       card2=m_row_data.get_below(card2)) {
-	    if (bits_explored_card2.is_set_bit(card2)) continue;
-	    if (Bits(card2) & bits_single_suit_cycle) continue; // is set
-	    if (card2.suit() == suit_card1) continue;
-	    bits_explored_card2.set_bit(card2);
+	    if (bits_na_to_card2.is_set_bit(card2)) continue;
+	    bits_na_to_card2.set_bit(card2);
 	    Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
 	    for (Card below1=m_row_data.get_below(card1); below1.is_card();
 		 below1=m_row_data.get_below(below1)) {
-	      if (! (Bits(below1) & bits_same_suit_small_rank_card2)) // is set
-		continue;
+	      if (! bits_same_suit_small_rank_card2.is_set_bit(below1))	continue;
 	      array_two_suit_cycle[ntwo_suit_cycle++] = Two_suit_cycle(card1, card2, true);
-	      ++count_in_two_suit_cycle[card1.get_id()];
-	      ++count_in_two_suit_cycle[card2.get_id()];
+	      count_in_two_suit_cycle[card1.get_id()] += 1;
+	      count_in_two_suit_cycle[card2.get_id()] += 1;
 	      break; } } } } }
-    if (ntwo_suit_cycle != (int)m_ntwo_suit_cycle) throw E(__LINE__); // remove cast
+    if (ntwo_suit_cycle != m_ntwo_suit_cycle) throw E(__LINE__);
     
     for (int i=0; i<ntwo_suit_cycle; ++i) {
-      int check = 0; // delete it 
-      for (int j=0; j<(int)m_ntwo_suit_cycle; ++j) {
-	if (array_two_suit_cycle[i] == m_array_two_suit_cycle[j]) {
-	  check = 1;
-	  break;
-	}
-      }
-      if (! check) throw E(__LINE__); }
+      int j;
+      for (j=0; j<m_ntwo_suit_cycle; ++j)
+	if (array_two_suit_cycle[i] == m_array_two_suit_cycle[j]) break;
+      if (j == m_ntwo_suit_cycle) throw E(__LINE__); }
     
     for (int id=0; id<DECK_SIZE; ++id)
       if (count_in_two_suit_cycle[id] != m_count_in_two_suit_cycle[id]) throw E(__LINE__); }
+  
   catch (const char *cstr) {
     cerr << cstr << endl;
     return false; }
@@ -79,13 +68,13 @@ bool Position::correct() const noexcept {
 
 Position::Position(int seed) noexcept : Position_base::Position_base(seed) {
     find_cycle();
-    assert(correct()); }
+    assert(ok()); }
 
 void Position::find_cycle() noexcept {
     m_nsingle_suit_cycle = 0;
     m_bits_single_suit_cycle.clear();
-    for (int column=0; column<TABLEAU_SIZE; ++column) {
-        for (Card card=m_array_pile_top[column]; card.is_card(); card=m_row_data.get_below(card)) {
+    for (int pile=0; pile<TABLEAU_SIZE; ++pile) {
+        for (Card card=m_array_pile_top[pile]; card.is_card(); card=m_row_data.get_below(card)) {
             Bits bits_same_suit_small_rank = Bits::same_suit_small_rank(card);
             for (Card below=m_row_data.get_below(card); below.is_card(); below=m_row_data.get_below(below)) {
                 if (! (Bits(below) & bits_same_suit_small_rank))
@@ -100,28 +89,28 @@ void Position::find_cycle() noexcept {
 
     m_ntwo_suit_cycle = 0;
     memset(m_count_in_two_suit_cycle, 0, sizeof(m_count_in_two_suit_cycle));
-    for (int column1=0; column1<TABLEAU_SIZE; ++column1) {
-        for (Card card1=m_array_pile_top[column1]; card1.is_card(); card1=m_row_data.get_below(card1)) {
+    for (int pile1=0; pile1<TABLEAU_SIZE; ++pile1) {
+        for (Card card1=m_array_pile_top[pile1]; card1.is_card(); card1=m_row_data.get_below(card1)) {
             if (Bits(card1) & m_bits_single_suit_cycle)
                 continue;
             int suit_card1 = card1.suit();
-            Bits bits_explored_card2;
+            Bits bits_na_to_card2;
             for (Card prev_card1=card1.prev(); prev_card1; prev_card1=prev_card1.prev()) {
                 if (m_bits_homecell.is_set_bit(prev_card1))
                     break;
                 if (m_bits_freecell.is_set_bit(prev_card1))
                     continue;
-                int column2 = m_array_location[prev_card1.get_id()];
-                if (column2 < column1)
+                int pile2 = m_array_location[prev_card1.get_id()];
+                if (pile2 < pile1)
                     continue;
-                for (Card card2=m_array_pile_top[column2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
-                    if (bits_explored_card2.is_set_bit(card2))
+                for (Card card2=m_array_pile_top[pile2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
+                    if (bits_na_to_card2.is_set_bit(card2))
                         continue;
                     if (Bits(card2) & m_bits_single_suit_cycle)
                         continue;
                     if (card2.suit() == suit_card1)
                         continue;
-                    bits_explored_card2.set_bit(card2);
+                    bits_na_to_card2.set_bit(card2);
                     Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
                     for (Card below1=m_row_data.get_below(card1); below1.is_card(); below1=m_row_data.get_below(below1)) {
                         if (! (Bits(below1) & bits_same_suit_small_rank_card2))
@@ -178,27 +167,26 @@ void Position::add_cycle(const Card& card1) noexcept {
         m_array_single_suit_cycle[(int)m_nsingle_suit_cycle++] = card1;
         m_bits_single_suit_cycle.set_bit(card1);
         assert(m_nsingle_suit_cycle <= MAX_SINGLE_SUIT_CYCLE_SIZE);
-        assert(correct());
         return;
     }
 
     int suit_card1 = card1.suit();
-    Bits bits_explored_card2;
+    Bits bits_na_to_card2;
     for (Card prev_card1=card1.prev(); prev_card1; prev_card1=prev_card1.prev()) {
         if (m_bits_homecell.is_set_bit(prev_card1))
             break;
         if (m_bits_freecell.is_set_bit(prev_card1))
             continue;
-        int column2 = m_array_location[prev_card1.get_id()];
+        int pile2 = m_array_location[prev_card1.get_id()];
 
-        for (Card card2=m_array_pile_top[column2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
-            if (bits_explored_card2.is_set_bit(card2))
+        for (Card card2=m_array_pile_top[pile2]; card2!=prev_card1; card2=m_row_data.get_below(card2)) {
+            if (bits_na_to_card2.is_set_bit(card2))
                 continue;
             if (Bits(card2) & m_bits_single_suit_cycle)
                 continue;
             if (card2.suit() == suit_card1)
                 continue;
-            bits_explored_card2.set_bit(card2);
+            bits_na_to_card2.set_bit(card2);
             Bits bits_same_suit_small_rank_card2 = Bits::same_suit_small_rank(card2);
             for (Card below1=m_row_data.get_below(card1); below1.is_card(); below1=m_row_data.get_below(below1)) {
                 if (! (Bits(below1) & bits_same_suit_small_rank_card2))
@@ -211,11 +199,9 @@ void Position::add_cycle(const Card& card1) noexcept {
         }
     }
     assert(m_ntwo_suit_cycle <= MAX_TWO_SUIT_CYCLE_SIZE);
-    assert(correct());
 }
 
 int Position::calc_h_cost() noexcept {
-    assert(correct());
     Bits bits_decided;
     int size = 0;
     int index; 
@@ -403,7 +389,7 @@ void Position::make(const Action& action) noexcept {
     if (action.get_from() <= 7 && m_array_pile_top[ action.get_from() ].is_card())
       delete_cycle(card);
     if (action.get_to() <= 7 && m_row_data.get_below(card).is_card()) add_cycle(card);
-    assert(correct()); }
+    assert(ok()); }
 
 void Position::unmake(const Action& action) noexcept {
     Position_base::unmake(action);
@@ -412,5 +398,5 @@ void Position::unmake(const Action& action) noexcept {
     if (action.get_to() <= 7 && m_array_pile_top[ action.get_to() ].is_card())
       delete_cycle(card);
     if (action.get_from() <= 7 && m_row_data.get_below(card).is_card()) add_cycle(card);
-    assert(correct());
+    assert(ok());
     assert(is_legal(action)); }

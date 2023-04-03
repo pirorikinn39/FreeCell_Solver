@@ -11,7 +11,7 @@ class Bits {
     uint64_t bits_next[DECK_SIZE];
     uint64_t bits_placeable[DECK_SIZE];
     uint64_t bits_same_suit_small_rank[DECK_SIZE];
-    uint64_t bits_different_suit[DECK_SIZE];
+    uint64_t bits_same_suit[N_SUIT];
     Table() noexcept {
       for (int id=0; id<DECK_SIZE; ++id) {
 	bits[id] = 1ULL << (63 - id);
@@ -28,12 +28,10 @@ class Bits {
 	  bits_placeable[id] |= 1ULL << (63 - id2); }
 	
 	for (Card card=prev; card.is_card(); card=card.prev())
-	  bits_same_suit_small_rank[id] |= 1ULL << (63 - card.get_id());
-	
-	int suit = Card(id).suit();
-	bits_different_suit[id] = 0xfffffffffffff000ULL;
-	for (Card card(suit, 0); card.is_card(); card=card.next())
-	  bits_different_suit[id] ^= 1ULL << (63 - card.get_id()); } } };
+	  bits_same_suit_small_rank[id] |= 1ULL << (63 - card.get_id()); }
+      for (int suit = 0; suit < N_SUIT; ++suit)
+	for (Card card(suit, 0); card; card=card.next())
+	  bits_same_suit[suit] ^= 1ULL << (63 - card.get_id()); } };
   static Table table;
   uint64_t m_bits;
 
@@ -81,21 +79,19 @@ public:
   static constexpr Bits not_kings() noexcept { return Bits(UINT64_C(0xfff7ffbffdffe000)); }
   static constexpr Bits kings() noexcept     { return Bits(UINT64_C(0x0008004002001000)); }
   static Bits next(int id) noexcept {
-    assert((0 <= id) && (id <= 51));
+    assert(0 <= id && id <= 51);
     return Bits(Bits::table.bits_next[id]); }
   static Bits placeable(int id) noexcept {
-    assert((0 <= id) && (id <= 51));
+    assert(0 <= id && id <= 51);
     return Bits(Bits::table.bits_placeable[id]); }
   static Bits same_suit_small_rank(int id) noexcept {
-    assert((0 <= id) && (id <= 51));
+    assert(0 <= id && id <= 51);
     return Bits(Bits::table.bits_same_suit_small_rank[id]); }
   static Bits same_suit_small_rank(const Card& card) noexcept {
     return same_suit_small_rank(card.get_id()); }
-  static Bits different_suit(int id) noexcept {
-    assert((0 <= id) && (id <= 51));
-    return Bits(Bits::table.bits_different_suit[id]); }
-  static Bits different_suit(const Card& card) noexcept {
-    return different_suit(card.get_id()); }
+  static Bits same_suit(int suit) noexcept {
+    assert(0 <= suit && suit < N_SUIT);
+    return Bits(Bits::table.bits_same_suit[suit]); }
 
   constexpr bool ok() const noexcept { return ! (m_bits & 0xfffULL); }
   constexpr uint64_t get_bits() const noexcept { return m_bits; }
