@@ -33,7 +33,9 @@ public:
   void clear_target() noexcept { m_is_target = false; }
   const Card& get_card1() const noexcept { return m_card1; }
   const Card& get_card2() const noexcept { return m_card2; }
-  bool get_is_target() const noexcept { return m_is_target; }
+  bool is_target() const noexcept { return m_is_target; }
+  bool is_included(const Card& card) const noexcept {
+    return (card == m_card1 || card == m_card2); }
 };
 inline bool operator==(const Two_suit_cycle& c1, const Two_suit_cycle& c2) noexcept {
   return ((c1.get_card1() == c2.get_card1() && c1.get_card2() == c2.get_card2())
